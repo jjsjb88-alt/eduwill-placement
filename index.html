@@ -96,6 +96,7 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 .vb-card .top{display:flex;align-items:baseline;gap:8px}
 .vb-card b{font-size:14.5px;font-weight:600}
 .vb-card .basis{margin-left:auto;font-size:11.5px;color:var(--dim);white-space:nowrap}
+.vb-card .vb-gap{font-size:12px;font-weight:600;color:var(--hi);font-variant-numeric:tabular-nums;white-space:nowrap}
 .vb-card .cnt{font-size:12px;color:#4A5060;font-variant-numeric:tabular-nums}
 .vb-card[aria-pressed=true]{background:#F3F6FF;border-color:transparent;box-shadow:0 0 0 2px var(--vb-ac)}
 .vb-more summary{list-style:none;display:flex;align-items:center;justify-content:center;min-height:40px;border:1px dashed #C9CED6;border-radius:10px;font-size:13px;color:#3D4352;cursor:pointer}
@@ -2604,7 +2605,8 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
   const out = new Map(), get = school => out.get(school) || out.set(school, {school, basis:'none', groups:{도전:[],적정:[],안정:[]}, notes:[], unknown:0, depts:new Map(), unknownKeys:new Set()}).get(school);
   // 2026-10-20 사용자 결정: 학과마다 ① 기출 점수 ② 모의 백분위 판정을 따로 낸 뒤 «둘 다 있으면 낮은 쪽»으로 합친다. 학과 키 = 학과|전형|캠퍼스.
   const keyOf = r => [r.raw.department, r.raw.track, r.raw.campus || ''].join('|');
-  const put = (v, r, src, verdict, detail) => { const k = keyOf(r), d = v.depts.get(k) || v.depts.set(k, {department:r.raw.department, track:r.raw.track, campus:r.raw.campus}).get(k); d[src] = {verdict, detail}; };
+  // gap = 적정 기준(합격 최저 / 합격자 백분위 하위25%)까지의 간격. 음수면 도전이고, 학과를 합칠 때도 낮은 쪽을 쓴다.
+  const put = (v, r, src, verdict, detail, gap) => { const k = keyOf(r), d = v.depts.get(k) || v.depts.set(k, {department:r.raw.department, track:r.raw.track, campus:r.raw.campus}).get(k); d[src] = {verdict, detail, gap}; };
   // 계열을 주면 그 계열 학과만 판정한다. 계열을 모르는 학과는 세어 두고 뺀다(다른 계열 학과는 세지 않는다). 점수·백분위에 같은 학과가 있어도 한 번만 센다.
   const fieldOk = (v, r) => { if(!field) return true; const f = fieldOf ? fieldOf(r) : null; if(f === field) return true; if(f == null) v.unknownKeys.add(keyOf(r)); return false; };
   const latest = new Map();
@@ -2624,7 +2626,7 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
     for(const r of kept){
       const {band_lo:lo, band_hi:hi} = r.metrics.minimum, s = a.score;
       const verdict = lo === hi ? (s > hi ? '안정' : s === hi ? '적정' : '도전') : s >= hi ? '안정' : s >= lo ? '적정' : '도전';
-      put(v, r, 'score', verdict, 'OMR ' + a.year + ' 기출 ' + s + '점 vs ' + r.raw.year + '학년도 최저 ' + lo + (lo === hi ? '' : '~' + hi) + '점' + (String(r.raw.year) !== String(a.year) ? ' · 다른 해 시험 — 참고' : ''));
+      put(v, r, 'score', verdict, 'OMR ' + a.year + ' 기출 ' + s + '점 vs ' + r.raw.year + '학년도 최저 ' + lo + (lo === hi ? '' : '~' + hi) + '점' + (String(r.raw.year) !== String(a.year) ? ' · 다른 해 시험 — 참고' : ''), s - (lo === hi ? hi : lo));
     }
   }
   const val = studentPct && Number.isFinite(studentPct.val) ? studentPct.val : null;
@@ -2639,7 +2641,8 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
       const en = band(val, r.distribution), ma = md ? band(mval, md) : null;
       const verdict = ma && VERDICTS.indexOf(ma) < VERDICTS.indexOf(en) ? ma : en;   // 자연: 영어·수학 중 낮은 쪽
       put(v, r, 'pct', verdict, (studentPct.estimated ? '기출 환산 추정 백분위 ' + val + '(±' + studentPct.mae + ')' : '내 영어 모의 백분위 ' + val) + ' vs 합격자 백분위 하위25% ' + q1 + (Number.isFinite(med) ? ' · 중앙 ' + med : '') + ' · 상위25% ' + q3 + ' (합격자 ' + (r.n ?? '미상') + '명' + (Number.isInteger(r.n) && r.n < 10 ? ' · 표본 적음' : '') + (Array.isArray(r.known_years) && r.known_years.length ? ' · ' + (r.known_years.length > 1 ? Math.min(...r.known_years) + '~' + Math.max(...r.known_years) + ' 합산' : r.known_years[0] + '학년도') : '') + ')' +
-        (md ? ' / 내 수학 ' + mval + ' vs 합격자 수학 하위25% ' + md.q1 + ' · 중앙 ' + md.med + ' · 상위25% ' + md.q3 + ' (' + md.n + '명) → 영어 ' + en + ' · 수학 ' + ma + ' 중 낮은 쪽' : field === '자연' ? ' · 수학 비교 없음' : '') + ' · 모의 계열·기간 미확인 — 참고');
+        (md ? ' / 내 수학 ' + mval + ' vs 합격자 수학 하위25% ' + md.q1 + ' · 중앙 ' + md.med + ' · 상위25% ' + md.q3 + ' (' + md.n + '명) → 영어 ' + en + ' · 수학 ' + ma + ' 중 낮은 쪽' : field === '자연' ? ' · 수학 비교 없음' : '') + ' · 모의 계열·기간 미확인 — 참고',
+        ma ? Math.min(val - q1, mval - md.q1) : val - q1);
     }
   }
   for(const v of out.values()){
@@ -2651,6 +2654,7 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
       if(pc) srcs.add('pct');
       const verdict = sc && pc ? VERDICTS[Math.min(VERDICTS.indexOf(sc.verdict), VERDICTS.indexOf(pc.verdict))] : one.verdict;
       v.groups[verdict].push({department:d.department, track:d.track, campus:d.campus, sources:sc && pc ? ['score','pct'] : [sc ? 'score' : 'pct'], split:!!(sc && pc && sc.verdict !== pc.verdict),
+        gap:sc && pc ? Math.min(sc.gap, pc.gap) : one.gap,
         detail:sc && pc ? '기출 점수 ' + sc.verdict + ' · 모의 백분위 ' + pc.verdict + (sc.verdict === pc.verdict ? ' — 같음' : ' — 엇갈림, 낮은 쪽 ' + verdict) + ' / ' + sc.detail + ' / ' + pc.detail : one.detail});
     }
     if(srcs.size) v.basis = srcs.size === 2 ? 'both' : [...srcs][0];
@@ -2702,7 +2706,7 @@ function findStudent(){
 }
 let VERDICT_OPEN = '', VERDICT_STUDENT = '';
 const BAND_CLASS = {도전:'band-hi', 적정:'band-mid', 안정:'band-safe'}, BASIS_SHORT = {both:'점수+백분위', score:'기출 점수', pct:'모의 백분위'};
-const BAND_HINT = {도전:'합격자보다 낮은 편 · 상향 지원', 적정:'합격자와 비슷 · 주력 지원', 안정:'합격자보다 높은 편 · 안전 지원'};
+const BAND_HINT = {도전:'합격자보다 낮은 편 · 상향 지원 · 기준에 가까운 학교부터', 적정:'합격자와 비슷 · 주력 지원', 안정:'합격자보다 높은 편 · 안전 지원'};
 const BAND_ICON = {
   도전:'<polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="15 7 21 7 21 13"></polyline>',
   적정:'<circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle>',
@@ -2712,10 +2716,14 @@ const bandIcon = g => '<svg width="20" height="20" viewBox="0 0 24 24" fill="non
 /* 도전/적정/안정 학과 수 비율 막대 — 색만으로 읽히지 않게 옆에 숫자를 항상 함께 둔다 */
 const distBar = c => { const n = c[0] + c[1] + c[2]; return '<span class="vb-dist" aria-hidden="true">' + VERDICTS.map((g, i) => c[i] ? '<i class="d-' + BAND_CLASS[g].slice(5) + '" style="width:' + (c[i] / n * 100).toFixed(1) + '%"></i>' : '').join('') + '</span>'; };
 /* 학교는 한 칸에만 둔다 — 학과 판정을 도전→안정으로 줄 세운 «중앙값» 칸. ease(0 도전~2 안정 평균)로 칸 안을 어려운 학교부터 놓는다. */
+/* gap = 학과 간격의 가운데 값(칸과 같은 아래쪽 가운데). 도전 학교면 음수 — 「기준까지 −N점」. 2026-10-23 사용자 지시: 도전 칸은 기준에 가까운 학교부터
+   (실제 백분위 50 미만 합격자 39건이 도전 칸 상대 순위 평균 0.29 — 가까운 쪽에 붙었다. 인수인계 4-26). */
 function schoolBand(v){
-  const all = VERDICTS.flatMap((g, i) => v.groups[g].map(() => i));
-  return {band:VERDICTS[all[Math.floor((all.length - 1) / 2)]], ease:all.reduce((a,b) => a + b, 0) / all.length, n:all.length};
+  const all = VERDICTS.flatMap((g, i) => v.groups[g].map(() => i)), mid = Math.floor((all.length - 1) / 2);
+  const gaps = VERDICTS.flatMap(g => v.groups[g].map(d => d.gap)).filter(Number.isFinite).sort((a,b) => a - b);
+  return {band:VERDICTS[all[mid]], ease:all.reduce((a,b) => a + b, 0) / all.length, n:all.length, gap:gaps.length ? gaps[Math.floor((gaps.length - 1) / 2)] : null};
 }
+const gapText = v => Number.isFinite(v.place.gap) && v.place.gap < 0 ? '기준까지 −' + (Math.round(-v.place.gap * 10) / 10) + '점' : '';
 function renderSchoolVerdict(){
   const box = $('schoolVerdict'), key = $('pstu').value;
   if(!box) return;
@@ -2729,7 +2737,8 @@ function renderSchoolVerdict(){
   const noWritten = [...new Set([...scoreRows, ...pctRows].map(r => r.raw?.school).filter(s => s && !WRITTEN_EXAM_SCHOOLS.has(schoolStem(s))))].sort((a,b) => a.localeCompare(b, 'ko'));
   const banded = list.filter(v => ['both','score','pct'].includes(v.basis)), fit = list.filter(v => v.basis === 'fit');
   banded.forEach(v => { v.place = schoolBand(v); v.counts = VERDICTS.map(g => v.groups[g].length); });
-  const inBand = g => banded.filter(v => v.place.band === g).sort((a,b) => a.place.ease - b.place.ease || a.school.localeCompare(b.school, 'ko'));
+  const near = (a, b) => (Number.isFinite(b.place.gap) ? b.place.gap : -Infinity) - (Number.isFinite(a.place.gap) ? a.place.gap : -Infinity);
+  const inBand = g => banded.filter(v => v.place.band === g).sort((a,b) => (g === '도전' ? near(a, b) : 0) || a.place.ease - b.place.ease || a.school.localeCompare(b.school, 'ko'));
   if(!banded.some(v => v.school === VERDICT_OPEN)) VERDICT_OPEN = (['적정','도전','안정'].map(g => inBand(g)[0]).find(Boolean) || {}).school || '';
   const pctText = (s, p) => p?.estimated ? s + ' 기출 환산 추정 백분위 ' + p.val.toFixed(1) + '(±' + p.mae + ')' : p && Number.isFinite(p.val) ? s + ' 모의 백분위 ' + p.val.toFixed(1) + (p.n < 3 ? '(' + p.n + '회 · 참고)' : '') : s + ' 모의 백분위 없음';
   const num = (s, p) => '<div class="vb-num"><p class="vb-meta">' + s + (p?.estimated ? ' 백분위 · 기출 환산 추정' : ' 모의 백분위') + '</p>' + (p && Number.isFinite(p.val)
@@ -2737,7 +2746,8 @@ function renderSchoolVerdict(){
     : '<b class="none">—</b><p class="vb-meta">' + (s === '수학' ? '미입력 · 영어만 비교' : '미입력') + '</p>') + '</div>';
   const dept = d => [d.campus, d.department, d.track && d.track !== '일반' ? d.track : ''].filter(Boolean).join(' · ');
   const card = v => '<button type="button" class="vb-card" data-verdict-open="' + esc(v.school) + '" aria-pressed="' + (VERDICT_OPEN === v.school) + '">' +
-    '<span class="top"><b>' + esc(v.school) + '</b><span class="basis">' + BASIS_SHORT[v.basis] + '</span></span>' + distBar(v.counts) +
+    '<span class="top"><b>' + esc(v.school) + '</b>' + (v.place.band === '도전' && gapText(v) ? '<span class="vb-gap" title="학과별 적정 기준(합격 최저 · 합격자 백분위 하위25%)까지 모자란 점수의 가운데 값">' + gapText(v) + '</span>' : '') +
+    '<span class="basis">' + BASIS_SHORT[v.basis] + '</span></span>' + distBar(v.counts) +
     '<span class="cnt">' + VERDICTS.map((g, i) => v.counts[i] ? g + ' ' + v.counts[i] : '').filter(Boolean).join(' · ') + ' · 학과 ' + v.place.n + '곳</span></button>';
   const col = g => {
     const items = inBand(g), cls = BAND_CLASS[g], rest = items.slice(VB_CARDS);
