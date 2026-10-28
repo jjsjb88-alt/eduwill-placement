@@ -2582,12 +2582,16 @@ async function loadCalibration(file){
   }catch(e){ calibMessage('불러오지 못했습니다 — ' + e.message + '. 이전 상태를 그대로 둡니다.'); }
   renderSchoolVerdict();
 }
+/* 2026-10-28 사용자 지시: 추정 백분위의 ±는 «쓴 기출 장수»의 실측 하한보다 작게 보이지 않는다.
+   실측(인수인계 4-32) — 같은 학생에서 기출을 k장만 쓰면 오차 1장 13.2 · 2장 11.9 · 3장 10.9 · 5장 10.5 · 10장 9.9. 4장·6~9장은 앞 값을 쓴다. */
+const SHEET_MAE_FLOOR = [[10, 9.9], [5, 10.5], [3, 10.9], [2, 11.9], [1, 13.2]];
+const sheetMaeFloor = n => (SHEET_MAE_FLOOR.find(([k]) => n >= k) || [0, 13.2])[1];
 function estimateFrom(accs, table){
   const used = [...accs.values()].map(a => ({...a, c:table.get(a.school)})).filter(a => a.c?.ok)
     .map(a => ({school:a.school, year:a.year, acc:a.acc, n:a.c.n, mae:a.c.mae, est:clampPct(a.c.a + a.c.b * a.acc), w:1 / Math.max(a.c.mae, 0.5) ** 2}));
   if(!used.length) return null;
-  const W = used.reduce((t, u) => t + u.w, 0), r1 = v => Math.round(v * 10) / 10;
-  return {val:r1(used.reduce((t, u) => t + u.w * u.est, 0) / W), mae:r1(used.reduce((t, u) => t + u.w * u.mae, 0) / W), n:used.length, estimated:true,
+  const W = used.reduce((t, u) => t + u.w, 0), r1 = v => Math.round(v * 10) / 10, tableMae = r1(used.reduce((t, u) => t + u.w * u.mae, 0) / W);
+  return {val:r1(used.reduce((t, u) => t + u.w * u.est, 0) / W), mae:Math.max(tableMae, sheetMaeFloor(used.length)), tableMae, n:used.length, estimated:true,
     from:used.map(u => ({school:u.school, year:u.year, acc:u.acc, est:r1(u.est), mae:u.mae, n:u.n}))};
 }
 function estimatedPercentile(key, table = calibrationTable()){ return estimateFrom(schoolAccuracy(key), table); }
@@ -2743,7 +2747,7 @@ function renderSchoolVerdict(){
   if(!banded.some(v => v.school === VERDICT_OPEN)) VERDICT_OPEN = (['적정','도전','안정'].map(g => inBand(g)[0]).find(Boolean) || {}).school || '';
   const pctText = (s, p) => p?.estimated ? s + ' 기출 환산 추정 백분위 ' + p.val.toFixed(1) + '(±' + p.mae + ')' : p && Number.isFinite(p.val) ? s + ' 모의 백분위 ' + p.val.toFixed(1) + (p.n < 3 ? '(' + p.n + '회 · 참고)' : '') : s + ' 모의 백분위 없음';
   const num = (s, p) => '<div class="vb-num"><p class="vb-meta">' + s + (p?.estimated ? ' 백분위 · 기출 환산 추정' : ' 모의 백분위') + '</p>' + (p && Number.isFinite(p.val)
-    ? '<b>' + p.val.toFixed(1) + '</b>' + (p.estimated ? '<p class="vb-meta">±' + p.mae + ' · ' + p.from.map(f => f.school).join('·') + ' 기출로 환산</p>' : p.n < 3 ? '<p class="vb-meta">' + p.n + '회 · 참고</p>' : '')
+    ? '<b>' + p.val.toFixed(1) + '</b>' + (p.estimated ? '<p class="vb-meta" title="환산표 오차 ±' + p.tableMae + ' · 기출 ' + p.n + '장일 때 실측 오차 하한 ±' + sheetMaeFloor(p.n) + ' 중 큰 쪽">±' + p.mae + ' · 기출 ' + p.n + '장(' + p.from.map(f => f.school).join('·') + ')으로 환산</p>' : p.n < 3 ? '<p class="vb-meta">' + p.n + '회 · 참고</p>' : '')
     : '<b class="none">—</b><p class="vb-meta">' + (s === '수학' ? '미입력 · 영어만 비교' : '미입력') + '</p>') + '</div>';
   const dept = d => [d.campus, d.department, d.track && d.track !== '일반' ? d.track : ''].filter(Boolean).join(' · ');
   const card = v => '<button type="button" class="vb-card" data-verdict-open="' + esc(v.school) + '" aria-pressed="' + (VERDICT_OPEN === v.school) + '">' +
