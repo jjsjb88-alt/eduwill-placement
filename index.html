@@ -2530,6 +2530,17 @@ function schoolAccuracy(key){
   }
   return out;
 }
+/* 2026-10-30 사용자 지시: 기출 환산 추정은 «응시 회차 전부»를 학교·연도 구분 없이 합산한다(인수인계 4-32 실측과 같은 단위).
+   schoolAccuracy(학교별 최근 1회)는 환산표 맞춤에만 쓴다. 같은 파일을 두 번 올린 회차는 한 번만 센다. */
+function sittingAccuracy(key){
+  const out = new Map();
+  for(const s of SESSIONS){
+    const row = s.rows.get(key), qs = Object.keys(s.km || {}), id = s.source_sha256 || s;
+    if(row?.attempt_status !== 'first' || !qs.length || out.has(id)) continue;
+    out.set(id, {school:String(s.stem).split('_')[0], year:s.year, stem:s.stem, acc:qs.filter(q => String(row.st.ans[q]) === s.km[q].key).length / qs.length});
+  }
+  return out;
+}
 function liveCalibrationTable(){
   const pairs = new Map();
   for(const key of ROSTER.keys()){
@@ -2583,7 +2594,8 @@ async function loadCalibration(file){
   renderSchoolVerdict();
 }
 /* 2026-10-28 사용자 지시: 추정 백분위의 ±는 «쓴 기출 장수»의 실측 하한보다 작게 보이지 않는다.
-   실측(인수인계 4-32) — 같은 학생에서 기출을 k장만 쓰면 오차 1장 13.2 · 2장 11.9 · 3장 10.9 · 5장 10.5 · 10장 9.9. 4장·6~9장은 앞 값을 쓴다. */
+   실측(인수인계 4-32) — 같은 학생에서 기출을 k장만 쓰면 오차 1장 13.2 · 2장 11.9 · 3장 10.9 · 5장 10.5 · 10장 9.9. 4장·6~9장은 앞 값을 쓴다.
+   2026-10-30: n 은 응시 회차 수(sittingAccuracy · 학교·연도 합산)다. 실측의 «장»과 같은 단위. */
 const SHEET_MAE_FLOOR = [[10, 9.9], [5, 10.5], [3, 10.9], [2, 11.9], [1, 13.2]];
 const sheetMaeFloor = n => (SHEET_MAE_FLOOR.find(([k]) => n >= k) || [0, 13.2])[1];
 function estimateFrom(accs, table){
@@ -2594,7 +2606,7 @@ function estimateFrom(accs, table){
   return {val:r1(used.reduce((t, u) => t + u.w * u.est, 0) / W), mae:Math.max(tableMae, sheetMaeFloor(used.length)), tableMae, n:used.length, estimated:true,
     from:used.map(u => ({school:u.school, year:u.year, acc:u.acc, est:r1(u.est), mae:u.mae, n:u.n}))};
 }
-function estimatedPercentile(key, table = calibrationTable()){ return estimateFrom(schoolAccuracy(key), table); }
+function estimatedPercentile(key, table = calibrationTable()){ return estimateFrom(sittingAccuracy(key), table); }
 const SPECIAL_TRACK = /농어촌|기회균|재외국민|특성화/;
 // 2026-10-22 사용자 지시: 학교별 판정은 «편입 영수 필기 전형» 학교만. 근거 = 영어·수학 기출 시험지가 있는 학교
 // (저장소 parsed 영어 2021~2026·math-20xx 28곳 + 학원 기출 모의 기록의 국민대·서울과기대 + 한국공학대 옛 이름 한국산업기술대).
@@ -2735,7 +2747,7 @@ function renderSchoolVerdict(){
   if(!key || !ROSTER.has(key)){ box.innerHTML = '<p class="vb-empty">기출 OMR을 올리고 학생을 찾으면 학교별 결과가 나옵니다.</p>'; return; }
   if(VERDICT_STUDENT !== key){ VERDICT_STUDENT = key; VERDICT_OPEN = ''; }
   const sf = studentField(key), field = sf.field, real = studentPercentile(key), ma = manualPercentile(key, '수학');
-  const calib = calibrationTable(), en = real || estimateFrom(schoolAccuracy(key), calib);
+  const calib = calibrationTable(), en = real || estimateFrom(sittingAccuracy(key), calib);
   const scoreRows = window.PLACEMENT_SCORE_EVIDENCE?.rows || [], pctRows = window.PLACEMENT_PERCENTILE_EVIDENCE?.records || [];
   const list = schoolVerdicts({attempts:studentAttempts(key), scoreRows, pctRows,
     studentPct:en, fits:placement(key, 'all', field), field, fieldOf:deptFieldOf, mathPct:field === '자연' ? ma : null, mathOf:mathDistOf, written:WRITTEN_EXAM_SCHOOLS});
@@ -2747,7 +2759,7 @@ function renderSchoolVerdict(){
   if(!banded.some(v => v.school === VERDICT_OPEN)) VERDICT_OPEN = (['적정','도전','안정'].map(g => inBand(g)[0]).find(Boolean) || {}).school || '';
   const pctText = (s, p) => p?.estimated ? s + ' 기출 환산 추정 백분위 ' + p.val.toFixed(1) + '(±' + p.mae + ')' : p && Number.isFinite(p.val) ? s + ' 모의 백분위 ' + p.val.toFixed(1) + (p.n < 3 ? '(' + p.n + '회 · 참고)' : '') : s + ' 모의 백분위 없음';
   const num = (s, p) => '<div class="vb-num"><p class="vb-meta">' + s + (p?.estimated ? ' 백분위 · 기출 환산 추정' : ' 모의 백분위') + '</p>' + (p && Number.isFinite(p.val)
-    ? '<b>' + p.val.toFixed(1) + '</b>' + (p.estimated ? '<p class="vb-meta" title="환산표 오차 ±' + p.tableMae + ' · 기출 ' + p.n + '장일 때 실측 오차 하한 ±' + sheetMaeFloor(p.n) + ' 중 큰 쪽">±' + p.mae + ' · 기출 ' + p.n + '장(' + p.from.map(f => f.school).join('·') + ')으로 환산</p>' : p.n < 3 ? '<p class="vb-meta">' + p.n + '회 · 참고</p>' : '')
+    ? '<b>' + p.val.toFixed(1) + '</b>' + (p.estimated ? '<p class="vb-meta" title="환산표 오차 ±' + p.tableMae + ' · 기출 모의 ' + p.n + '회(학교·연도 합산)일 때 실측 오차 하한 ±' + sheetMaeFloor(p.n) + ' 중 큰 쪽">±' + p.mae + ' · 기출 모의 ' + p.n + '회(' + [...new Set(p.from.map(f => f.school))].join('·') + ')로 환산</p>' : p.n < 3 ? '<p class="vb-meta">' + p.n + '회 · 참고</p>' : '')
     : '<b class="none">—</b><p class="vb-meta">' + (s === '수학' ? '미입력 · 영어만 비교' : '미입력') + '</p>') + '</div>';
   const dept = d => [d.campus, d.department, d.track && d.track !== '일반' ? d.track : ''].filter(Boolean).join(' · ');
   const card = v => '<button type="button" class="vb-card" data-verdict-open="' + esc(v.school) + '" aria-pressed="' + (VERDICT_OPEN === v.school) + '">' +
