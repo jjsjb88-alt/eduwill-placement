@@ -4,37 +4,54 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>편입 배치상담</title>
+<script>(function(){var t;try{t=localStorage.getItem('placement-theme');}catch(e){}document.documentElement.dataset.theme=t==='dark'||t==='light'?t:(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');})();</script>
 <style>
+/* 2026-10-31 19단계: 대시보드 토큰 — 밝은 화면이 기본, html[data-theme=dark] 가 어두운 화면.
+   판정 글자색은 칩 바탕·카드 위 4.5:1 이상으로 맞췄다(docs/대시보드_디자인핸드오프.md §3-1). */
 :root{
-  --bg:#f7f8fa; --card:#fff; --ink:#1a1d23; --dim:#5b6472; --line:#e3e7ee;
-  --accent:#2563eb; --ok:#059669; --warn:#d97706; --bad:#dc2626;
+  --bg:#EEF1F8; --card:#fff; --panel2:#F3F5FB; --side:#fff; --tint:#F5F7FF;
+  --ink:#141A2E; --dim:#56627F; --line:#E1E6F0; --line2:#C9D1E2; --track:#E7EBF4;
+  --accent:#3651D6; --accent-solid:#5F4FE0; --glow:#7C6CFF; --glow-soft:rgba(124,108,255,.18);
+  --ok:#059669; --warn:#d97706; --bad:#dc2626;
+  --hi:#A9461A; --hi-bg:#FDEEE6; --mid:#3651D6; --mid-bg:#E8EDFF; --safe:#0A735F; --safe-bg:#E2F6F0;
+  --hi-bar:#E06A30; --mid-bar:#3F63E0; --safe-bar:#1E9E80; --hero-a:#E7EAFF; --hero-b:#fff;
+  color-scheme:light;
+}
+html[data-theme=dark]{
+  --bg:#090E1C; --card:#121A30; --panel2:#18213B; --side:#0D1426; --tint:#151E38;
+  --ink:#E9EDF8; --dim:#9AA6C4; --line:rgba(150,166,214,.14); --line2:rgba(150,166,214,.32); --track:rgba(150,166,214,.13);
+  --accent:#8FA2FF; --glow-soft:rgba(124,108,255,.32);
+  --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
+  --hi:#FF8F5E; --hi-bg:rgba(255,143,94,.14); --mid:#7C95FF; --mid-bg:rgba(124,149,255,.16); --safe:#34D6B2; --safe-bg:rgba(52,214,178,.14);
+  --hi-bar:#FF8F5E; --mid-bar:#7C95FF; --safe-bar:#34D6B2; --hero-a:#1A2147; --hero-b:#121A30;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 body{margin:0;padding:0;background:var(--bg);color:var(--ink);
      font:14px/1.6 -apple-system,"Segoe UI","Malgun Gothic",sans-serif}
-.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 80px}
+.wrap{flex:1 1 0;min-width:0;max-width:1680px;padding:20px 28px 64px;box-sizing:border-box}
 h1{font-size:20px;margin:0 0 4px}
 .sub{color:var(--dim);font-size:13px;margin-bottom:20px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
-.drop{border:2px dashed #c3cbd8;border-radius:10px;padding:34px 18px;text-align:center;background:#fff;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+.drop{border:2px dashed var(--line2);border-radius:10px;padding:34px 18px;text-align:center;background:var(--card);cursor:pointer}
 :where(button,select,input,summary,[tabindex]):focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 @media(forced-colors:active){:where(button,select,input,summary,[tabindex]):focus-visible{outline:3px solid ButtonText}.chip,.note{border:1px solid CanvasText}}
-.drop.on{border-color:var(--accent);background:#eff5ff}
+.drop.on{border-color:var(--accent);background:var(--tint)}
 .drop b{display:block;font-size:15px;margin-bottom:6px}
 .drop span{color:var(--dim);font-size:13px}
-button{font:inherit;padding:8px 16px;border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer}
-button.pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+button{font:inherit;color:inherit;padding:8px 16px;border:1px solid var(--line);background:var(--card);border-radius:7px;cursor:pointer}
+button.pri{background:var(--accent-solid);color:#fff;border-color:var(--accent-solid)}
 button:disabled{opacity:.45;cursor:default}
 button.mini{padding:3px 10px;font-size:12px;border-radius:6px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
-th{background:#f2f4f8;font-weight:600;font-size:12px;color:var(--dim)}
+th{background:var(--panel2);font-weight:600;font-size:12px;color:var(--dim)}
 td.num{text-align:right;font-variant-numeric:tabular-nums}
 .tw{overflow-x:auto}
 .chip{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
-.tagsm{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:99px;background:#eef1f6;color:var(--dim);margin-left:4px;font-weight:500}
+.tagsm{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:99px;background:var(--panel2);color:var(--dim);margin-left:4px;font-weight:500}
 .tagsm.few{background:#fff1d6;color:#8a5a06}
-select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:#fff}
+select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--card)}
 h4{margin:18px 0 6px}
 .c-ok{background:#d1fae5;color:#065f46}
 .c-warn{background:#fef3c7;color:#92400e}
@@ -51,104 +68,154 @@ h4{margin:18px 0 6px}
 .hide{display:none}
 .rowline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
-.bar{height:6px;background:#e8ecf3;border-radius:99px;overflow:hidden;min-width:70px;display:inline-block;vertical-align:middle}
+.bar{height:6px;background:var(--track);border-radius:99px;overflow:hidden;min-width:70px;display:inline-block;vertical-align:middle}
 .bar i{display:block;height:100%;background:var(--accent)}
 .up{color:var(--ok);font-weight:600}
 .dn{color:var(--bad);font-weight:600}
 .fl{font-size:12px;color:var(--dim);margin-top:3px}
-/* 2026-10-20 학생용 결과 보드 — 도전/적정/안정 세 칸 · 학교 카드 · 학과 칩 */
+/* 2026-10-31 19단계: 학생 결과 대시보드 — 1행 학생·KPI · 2행 구간 차트·도넛 · 3행 판정 보드 · 4행 상세·기출 정답률.
+   클래스·data-* 이름은 그대로 둔다(_test/test_workspace.mjs 가 이것으로 화면을 읽는다). */
 #warns .note{padding:6px 10px;margin-bottom:6px}
-.vb{--vb-ac:#1F3A8A;--hi:#9A3412;--hi-bg:#FFF4EB;--hi-chip:#FFE4CF;--hi-bar:#F08A3C;--mid:#1E40AF;--mid-bg:#F0F4FF;--mid-chip:#DCE6FE;--mid-bar:#2F5BD8;--safe:#115E59;--safe-bg:#EDF8F5;--safe-chip:#D3EFE8;--safe-bar:#7CC3B2;display:flex;flex-direction:column;gap:16px}
-.vb-section{margin-bottom:16px}
+.vb{display:flex;flex-direction:column;gap:16px}
+.vb-section{margin-bottom:20px}
 .vb-section>h2{margin:8px 0 12px;font-size:20px}
-.vb-head{display:flex;flex-wrap:wrap;align-items:center;gap:16px 36px;padding:20px 22px;border:1px solid var(--line);border-radius:14px;background:#fff}
-.vb-who{flex:1 1 240px;min-width:0}
-.vb-name{margin:0;font-size:26px;line-height:1.25;font-weight:700}
+.vb-row{display:flex;flex-wrap:wrap;gap:16px}
+.vb-head,.vb-kpi,.vb-sum,.vb-range,.vb-trend,.vb-detail,.vb-fit,.vb-col{background:var(--card);border:1px solid var(--line);border-radius:20px;min-width:0;box-sizing:border-box}
+.vb-head{flex:2 1 460px;display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;padding:22px 24px;background:linear-gradient(135deg,var(--hero-a),var(--hero-b));position:relative;overflow:hidden}
+.vb-head:before{content:"";position:absolute;right:-60px;top:-80px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,var(--glow-soft),transparent 70%);pointer-events:none}
+.vb-head>*{position:relative}
+.vb-who{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.vb-tags{display:flex;flex-wrap:wrap;gap:6px}
+.vb-tag{font-size:12px;font-weight:600;padding:2px 10px;border-radius:999px;background:var(--panel2);color:var(--dim)}
+.vb-tag.src-mock{background:var(--safe-bg);color:var(--safe)}.vb-tag.src-est{background:var(--mid-bg);color:var(--mid)}
+.vb-name{margin:0;font-size:28px;line-height:1.2;font-weight:700;letter-spacing:-.02em}
 .vb-meta{color:var(--dim);font-size:13px;font-weight:400;margin:0}
-.vb-nums{display:flex;flex-wrap:wrap;gap:12px 32px}
-.vb-num b{display:block;font-size:32px;line-height:1.2;font-variant-numeric:tabular-nums}
-.vb-num b.none{color:#8A90A0}
-.vb-fieldbox{display:flex;flex-direction:column;gap:6px}
-.vb-field{display:inline-flex;align-self:flex-start;padding:3px;border-radius:10px;background:#EEF0F3}
-.vb-field button{border:0;border-radius:8px;min-height:40px;padding:0 14px;font-size:14px;font-weight:600;background:transparent;color:#4A5060}
-.vb-field button[aria-pressed=true]{background:#fff;color:var(--vb-ac);box-shadow:0 1px 2px rgba(22,24,29,.12)}
+.vb-nums{display:flex;flex-wrap:wrap;gap:12px 20px}
+.vb-num{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;max-width:220px}
+.vb-ring .v,.vb-donut .v{fill:var(--ink);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.vb-ring .v{font-size:32px}.vb-donut .v{font-size:30px}
+.vb-ring .lbl,.vb-donut .lbl{fill:var(--dim);font-size:12px}
+.vb-stats{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:4px}
+.vb-stats div{font-size:12px;color:var(--dim)}
+.vb-stats b{display:block;font-size:20px;line-height:1.3;color:var(--ink);font-variant-numeric:tabular-nums}
+.vb-fieldbox{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.vb-field{display:inline-flex;align-self:flex-start;gap:4px;padding:4px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
+.vb-field button{border:0;border-radius:9px;min-height:36px;padding:0 14px;font-size:13px;font-weight:600;background:transparent;color:var(--dim)}
+.vb-field button[aria-pressed=true]{background:var(--accent-solid);color:#fff}
+.vb-kpi{flex:1 1 180px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.vb-kpi .k-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:600}
+.vb-kpi .k-top>span:first-child{display:flex;align-items:center;gap:8px}
+.vb-kpi .k-hint{font-size:12px;color:var(--dim);font-weight:400}
+.vb-kpi .k-num{font-size:40px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.vb-kpi .k-num small{font-size:14px;color:var(--dim);font-weight:500;margin-left:4px;letter-spacing:0}
+.vb-kpi .k-bar{height:8px;border-radius:999px;background:var(--track);overflow:hidden}
+.vb-kpi .k-bar i{display:block;height:100%;border-radius:999px}
+.vb-kpi .k-sub{margin:0;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
 .vb-lead{margin:0;font-size:13.5px;color:var(--dim)}
-.vb-sum{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:13px}
-.vb-sum>p{margin:0;color:var(--dim)}
+.vb-cardhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px}
+.vb-cardhead h3,.vb-sum h3{margin:0;font-size:16px;font-weight:700}
+.vb-cardhead p{margin:0;font-size:12px;color:var(--dim)}
+.vb-range{flex:2 1 560px;padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.vb-bands{--c1:112px;--c3:64px;position:relative;display:flex;flex-direction:column;gap:10px}
+.vb-bandrow,.vb-axis{display:grid;grid-template-columns:var(--c1) minmax(0,1fr) var(--c3);align-items:center;gap:12px}
+.vb-bandrow>span:first-child{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vb-track{position:relative;height:22px;border-radius:6px;background:var(--track)}
+.vb-track .rg{position:absolute;top:3px;bottom:3px;border-radius:5px;opacity:.85}
+.vb-track .md{position:absolute;top:6px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.28)}
+.vb-me{position:absolute;top:-6px;bottom:18px;width:2px;margin-left:-1px;left:calc(var(--c1) + 12px + (100% - var(--c1) - var(--c3) - 24px) * var(--f));background:var(--ink);opacity:.85;box-shadow:0 0 12px var(--glow);pointer-events:none}
+.vb-axis{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.vb-axis div{display:flex;justify-content:space-between}
+.vb-pill{display:inline-block;text-align:center;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.vb-sum{flex:1 1 280px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.vb-sum>p{margin:0;color:var(--dim);font-size:13px}
 .vb-sum b{color:var(--ink);font-variant-numeric:tabular-nums}
-.vb-dist{display:flex;width:100%;height:6px;border-radius:3px;overflow:hidden;background:#EEF0F3}
-.vb-sum .vb-dist{flex:1 1 220px;width:auto;height:10px;border-radius:5px}
+.vb-donut{display:flex;justify-content:center}
+.vb-legend{display:flex;flex-direction:column;gap:10px;font-size:13px;font-variant-numeric:tabular-nums}
+.vb-legend span{display:grid;grid-template-columns:10px 1fr auto 44px;gap:10px;align-items:center}
+.vb-legend b{font-weight:600}.vb-legend em{font-style:normal;color:var(--dim);text-align:right}
+.vb-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
+.vb-dist{display:flex;width:100%;height:6px;border-radius:999px;overflow:hidden;background:var(--track)}
 .vb-dist i{display:block;height:100%}
 .d-hi{background:var(--hi-bar)}.d-mid{background:var(--mid-bar)}.d-safe{background:var(--safe-bar)}
-.vb-legend{display:flex;gap:14px;color:#4A5060;font-variant-numeric:tabular-nums}
-.vb-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
-.vb-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
-.vb-col{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden}
-.vb-colhead{padding:14px 14px 12px;border-bottom:1px solid var(--line)}
-.col-hi .vb-colhead{background:var(--hi-bg)}.col-mid .vb-colhead{background:var(--mid-bg)}.col-safe .vb-colhead{background:var(--safe-bg)}
+.vb-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start}
+.vb-col{padding:18px;display:flex;flex-direction:column;gap:12px}
+.vb-colhead{padding:0 4px}
 .vb-col h3{display:flex;align-items:center;gap:8px;margin:0;font-size:17px}
-.vb-col h3 .n{margin-left:auto;font-size:22px;line-height:1;font-variant-numeric:tabular-nums}
-.vb-col h3 .n small{font-size:12.5px;font-weight:500;margin-left:2px}
-.vb-colhead p{margin:5px 0 0;font-size:12.5px;color:#4A5060}
-.vb-cards,.vb-more>div{display:flex;flex-direction:column;gap:8px}
-.vb-cards{padding:10px}
-.vb-card{display:flex;flex-direction:column;gap:7px;width:100%;text-align:left;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
-.vb-card .top{display:flex;align-items:baseline;gap:8px}
+.vb-col h3 .n{margin-left:auto;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.vb-col h3 .n small{font-size:13px;font-weight:500;color:var(--dim);margin-left:2px}
+.vb-colhead p{margin:4px 0 0;font-size:12px;color:var(--dim)}
+.vb-cards,.vb-more>div{display:flex;flex-direction:column;gap:10px}
+.vb-card{display:flex;flex-direction:column;gap:10px;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:transparent;color:var(--ink);transition:border-color .15s ease-out,box-shadow .15s ease-out}
+.vb-card:hover{border-color:var(--line2)}
+.vb-card .top{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 8px}
 .vb-card b{font-size:14.5px;font-weight:600}
 .vb-card .basis{margin-left:auto;font-size:11.5px;color:var(--dim);white-space:nowrap}
-.vb-card .vb-gap{font-size:12px;font-weight:600;color:var(--hi);font-variant-numeric:tabular-nums;white-space:nowrap}
-.vb-card .cnt{font-size:12px;color:#4A5060;font-variant-numeric:tabular-nums}
-.vb-card[aria-pressed=true]{background:#F3F6FF;border-color:transparent;box-shadow:0 0 0 2px var(--vb-ac)}
-.vb-more summary{list-style:none;display:flex;align-items:center;justify-content:center;min-height:40px;border:1px dashed #C9CED6;border-radius:10px;font-size:13px;color:#3D4352;cursor:pointer}
+.vb-card .vb-gap{font-size:12px;font-weight:600;color:var(--hi);background:var(--hi-bg);padding:1px 8px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vb-card .cnt{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.vb-card[aria-pressed=true]{background:var(--panel2)}
+.col-hi .vb-card[aria-pressed=true]{border-color:var(--hi);box-shadow:0 0 0 3px var(--hi-bg)}
+.col-mid .vb-card[aria-pressed=true]{border-color:var(--mid);box-shadow:0 0 0 3px var(--mid-bg)}
+.col-safe .vb-card[aria-pressed=true]{border-color:var(--safe);box-shadow:0 0 0 3px var(--safe-bg)}
+.vb-more summary{list-style:none;display:flex;align-items:center;justify-content:center;min-height:44px;border:1px dashed var(--line2);border-radius:12px;font-size:13px;color:var(--dim);cursor:pointer}
 .vb-more summary::-webkit-details-marker{display:none}
-.vb-more[open] summary{margin-bottom:8px}
+.vb-more[open] summary{margin-bottom:10px}
 .vb-empty{font-size:13px;color:var(--dim);margin:6px 4px}
-.vb-detail{padding:20px 22px;border:1px solid var(--line);border-radius:14px;background:#fff}
-.vb-dhead{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-.vb-dhead h3{margin:0;font-size:20px}
-.vb-pill{padding:2px 11px;border-radius:99px;font-size:12.5px;font-weight:700}
+.vb-detail{flex:2 1 560px;padding:22px 24px}
+.vb-dhead{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.vb-dhead h3{margin:0;font-size:20px;letter-spacing:-.01em}
 .vb-detail>.vb-lead{margin-top:6px}
-.vb-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:16px}
-.vb-band{font-size:13.5px;font-weight:700;margin:0 0 6px}
+.vb-dstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+.vb-dstats div{background:var(--panel2);border-radius:14px;padding:12px 14px;font-size:12px;color:var(--dim)}
+.vb-dstats b{display:block;font-size:20px;line-height:1.3;color:var(--ink);font-variant-numeric:tabular-nums}
+.vb-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:16px}
+.vb-band{font-size:13.5px;font-weight:700;margin:0 0 8px}
 .vb-band span{font-weight:500;color:var(--dim)}
 .vb-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0}
 .vb-chip{font-size:12.5px;padding:4px 10px;border-radius:8px}
 .vb-chip.vb-split{outline:1px dashed currentColor;outline-offset:-1px}
 .vb-chip small{font-size:11px;font-weight:600}
-.band-hi{color:var(--hi)}.vb-chip.band-hi,.vb-pill.band-hi{background:var(--hi-chip)}
-.band-mid{color:var(--mid)}.vb-chip.band-mid,.vb-pill.band-mid{background:var(--mid-chip)}
-.band-safe{color:var(--safe)}.vb-chip.band-safe,.vb-pill.band-safe{background:var(--safe-chip)}
+.band-hi{color:var(--hi)}.vb-chip.band-hi,.vb-pill.band-hi{background:var(--hi-bg)}
+.band-mid{color:var(--mid)}.vb-chip.band-mid,.vb-pill.band-mid{background:var(--mid-bg)}
+.band-safe{color:var(--safe)}.vb-chip.band-safe,.vb-pill.band-safe{background:var(--safe-bg)}
 .vb-rest summary{list-style:none;font-size:12.5px;padding:3px 10px;border:1px dashed currentColor;border-radius:8px;cursor:pointer}
 .vb-rest summary::-webkit-details-marker{display:none}
 .vb-rest[open]{flex-basis:100%}.vb-rest[open] summary{display:none}
+.vb-trend{flex:1 1 280px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.vb-trend svg text{fill:var(--dim);font-size:10px}
+.vb-tbox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vb-tbox div{background:var(--panel2);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--dim)}
+.vb-tbox b{display:block;font-size:14px;color:var(--ink)}
 .vb-why,.vb-calib{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
-.vb-why summary,.vb-calib summary{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid #D5D9E0;border-radius:8px;font-size:13px;color:#3D4352;cursor:pointer}
+.vb-why summary,.vb-calib summary{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--line2);border-radius:10px;background:var(--panel2);font-size:13px;font-weight:600;cursor:pointer}
 .vb-why .tw,.vb-calib .tw{margin-top:10px}
 .vb-why td{white-space:normal}
 .vb-why td:first-child,.vb-why td:nth-child(2){white-space:nowrap}
 .vb-notes-in{margin:12px 0 0}
-.vb-fit{padding:16px 22px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.vb-fit{padding:16px 22px}
 .vb-fit h3{margin:0;font-size:15px}
 .vb-fit .vb-chips{margin-top:10px}
 .vb-fit .chip{font-size:12.5px;padding:5px 11px;font-weight:500}
 .vb-notes{margin:0;padding-left:18px;font-size:12.5px;color:var(--dim)}
-@media(max-width:760px){.vb-board{grid-template-columns:1fr}.vb-head,.vb-detail,.vb-fit{padding:16px}}
-@media(forced-colors:active){.vb-card[aria-pressed=true]{outline:2px solid Highlight}.vb-dist{border:1px solid CanvasText}}
-.counsel-shell{border-top:4px solid var(--accent);background:linear-gradient(145deg,#eff5ff,#fff 65%)}
+@media(max-width:1279px){.vb-head{flex-basis:100%}}
+@media(max-width:760px){.vb-bands{--c1:84px;--c3:56px}.vb-head,.vb-detail,.vb-fit{padding:16px}}
+@media(max-width:600px){.vb-kpi .k-num{font-size:28px}.vb-range,.vb-sum,.vb-trend,.vb-kpi,.vb-col{padding:16px}}
+@media(max-width:380px){.vb-bands{--c1:72px;--c3:0px}.vb-bandrow .vb-pill{display:none}}
+@media(forced-colors:active){.vb-card[aria-pressed=true]{outline:2px solid Highlight}.vb-dist,.vb-track,.vb-chip,.vb-pill,.vb-tag{border:1px solid CanvasText}}
+.counsel-shell{border-top:4px solid var(--accent);background:linear-gradient(145deg,var(--tint),var(--card) 65%)}
 .counsel-eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--accent);margin:0}
 .counsel-shell h2{font-size:25px;letter-spacing:-.04em;margin:5px 0 10px}
 .counsel-lead{font-size:16px;margin:0 0 16px;max-width:720px}
 .counsel-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
-.counsel-metrics div{padding:12px;background:#fff;border:1px solid var(--line);border-radius:9px}
+.counsel-metrics div{padding:12px;background:var(--card);border:1px solid var(--line);border-radius:9px}
 .counsel-metrics dt{font-size:12px;color:var(--dim)}
 .counsel-metrics dd{margin:4px 0 0;font-size:20px;font-weight:700}
 .counsel-route{font-weight:600;color:var(--dim)}
 .counsel-nav{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-.counsel-nav a{padding:7px 12px;background:#fff;border:1px solid var(--line);border-radius:7px;color:var(--accent);text-decoration:none}
+.counsel-nav a{padding:7px 12px;background:var(--card);border:1px solid var(--line);border-radius:7px;color:var(--accent);text-decoration:none}
 .counsel-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .counsel-controls select{max-width:100%}
 .counsel-controls input{font:inherit;width:120px;padding:6px;border:1px solid var(--line);border-radius:7px}
-.counsel-empty{border:1px dashed #b8c9e2;border-radius:9px;padding:18px;background:#f8fbff}
+.counsel-empty{border:1px dashed var(--line2);border-radius:9px;padding:18px;background:var(--tint)}
 .counsel-scroll{border:1px solid var(--line);border-radius:9px}
 .counsel-table{min-width:700px;table-layout:fixed}
 .counsel-table caption{text-align:left;padding:12px;font-size:13px;color:var(--dim)}
@@ -158,18 +225,18 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 .counsel-table .observation-reasons ol{padding-left:19px}
 .counsel-table details{font-size:12px}
 .counsel-compare-button{margin:8px 0 0}
-.counsel-compare-button[aria-pressed=true]{border-color:var(--accent);background:#eff5ff;color:#1748a3;font-weight:700}
-.counsel-next{padding:12px 16px;border-left:4px solid var(--accent);background:#fff;border-radius:7px;margin:14px 0}
+.counsel-compare-button[aria-pressed=true]{border-color:var(--accent);background:var(--tint);color:var(--accent);font-weight:700}
+.counsel-next{padding:12px 16px;border-left:4px solid var(--accent);background:var(--card);border-radius:7px;margin:14px 0}
 .counsel-next p{margin:5px 0 10px}
 .counsel-decisions{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
-.counsel-decision{border:1px solid var(--line);border-radius:9px;padding:14px;background:#f8fbff;overflow-wrap:anywhere}
+.counsel-decision{border:1px solid var(--line);border-radius:9px;padding:14px;background:var(--tint);overflow-wrap:anywhere}
 .counsel-decision h3{margin:0 0 8px;font-size:15px}
 .counsel-decision p{margin:7px 0}
 .counsel-brief-reasons .observation-reasons>:not([data-primary-reason]){display:none}
-.counsel-evidence-guide{padding:12px;border:1px solid var(--line);border-radius:8px;background:#f8fbff;margin:12px 0}
+.counsel-evidence-guide{padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--tint);margin:12px 0}
 .counsel-selection-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
 .counsel-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px;margin:12px 0}
-.counsel-detail{border:1px solid var(--line);border-radius:9px;padding:14px;background:#fff;overflow-wrap:anywhere;min-width:0}
+.counsel-detail{border:1px solid var(--line);border-radius:9px;padding:14px;background:var(--card);overflow-wrap:anywhere;min-width:0}
 .counsel-detail h4{margin:0 0 6px;font-size:15px}
 .counsel-detail-context{font-size:12px;color:var(--dim);margin:0 0 10px}
 .counsel-evidence{margin:10px 0;display:grid;gap:6px}
@@ -182,17 +249,76 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 [data-evidence-state=private] .evidence-state,[data-evidence-state=noncomparable] .evidence-state{border-color:#c9a3a3;color:#8a2020}
 .counsel-tasks{padding-left:19px}
 .counsel-tasks li{margin:8px 0}
-.counsel-shared{padding:10px 12px;border-left:4px solid var(--line);background:#f8fbff;border-radius:6px}
+.counsel-shared{padding:10px 12px;border-left:4px solid var(--line);background:var(--tint);border-radius:6px}
 @media(max-width:600px){.counsel-evidence div{grid-template-columns:1fr;gap:2px}.counsel-metrics{grid-template-columns:1fr}.counsel-shell h2{font-size:22px}.counsel-lead{font-size:15px}.counsel-table{min-width:760px}}
+/* 2026-10-31 19단계: 사이드 메뉴 + 본문. 메뉴는 같은 페이지 앵커다(핸드오프 §8 결정 1). */
+body{background:var(--bg)}
+.app{display:flex;align-items:stretch;min-height:100vh}
+.side{flex:0 0 232px;position:sticky;top:0;height:100vh;overflow-y:auto;box-sizing:border-box;background:var(--side);border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;gap:28px}
+.brand{display:flex;align-items:center;gap:12px;padding:0 8px}
+.brand-mark{flex:none;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--mid-bar),var(--glow));display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px var(--glow-soft)}
+.brand b{display:block;font-size:16px;letter-spacing:-.01em}
+.brand span{font-size:12px;color:var(--dim)}
+.side-nav{display:flex;flex-direction:column;gap:4px}
+.side-nav a{position:relative;display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:500;color:var(--dim)}
+.side-nav a:hover{color:var(--ink);background:var(--panel2)}
+.side-nav a[aria-current]{color:var(--ink);font-weight:600;background:linear-gradient(90deg,var(--mid-bg),transparent);box-shadow:inset 3px 0 0 var(--glow)}
+.side-nav svg{flex:none}
+.side-nav .badge{margin-left:auto;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--hi-bg);color:var(--hi)}
+.side-ring{margin-top:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;font-size:12px;color:var(--dim)}
+.side-ring p{margin:0}
+.side-ring .v{fill:var(--ink);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}.side-ring .lbl{fill:var(--dim);font-size:11px}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin-bottom:20px}
+.topbar>div{flex:1 1 260px;min-width:0}
+.topbar h1{font-size:22px;letter-spacing:-.02em}
+.topbar .sub{margin:2px 0 0}
+.theme-btn{flex:none;width:44px;height:44px;padding:0;border-radius:12px;display:flex;align-items:center;justify-content:center}
+select{max-width:100%}   /* 강사용 칸의 긴 선택지가 휴대폰 폭을 밀어내지 않게 */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:1023px){.side{flex-basis:72px;padding:20px 12px}.brand{justify-content:center;padding:0}.brand>div:last-child,.side-ring{display:none}
+  .side-nav a{justify-content:center;padding:0}.side-nav .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .side-nav .badge{position:absolute;top:4px;right:4px;padding:0 5px}}
+@media(max-width:760px){.app{flex-direction:column}.side{position:sticky;top:0;z-index:5;height:auto;flex:none;flex-direction:row;align-items:center;gap:8px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto}
+  .brand{display:none}.side-nav{flex-direction:row}.side-nav a{padding:0 12px;white-space:nowrap}.side-nav .lbl{position:static;width:auto;height:auto;overflow:visible;clip:auto}
+  .side-nav .badge{position:static}.wrap{padding:16px 16px 64px}}
+@media(prefers-reduced-motion:reduce){.vb-card{transition:none}}
+/* 어두운 화면: 노랑·빨강·초록 알림 바탕이 밝은 글자와 부딪히지 않게 */
+html[data-theme=dark] .note{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.35)}
+html[data-theme=dark] .note.bad{background:rgba(248,113,113,.10);border-color:rgba(248,113,113,.35)}
+html[data-theme=dark] .note.ok{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.35)}
+html[data-theme=dark] .c-ok{background:rgba(52,211,153,.16);color:#6EE7B7}
+html[data-theme=dark] .c-warn,html[data-theme=dark] .tagsm.few{background:rgba(251,191,36,.16);color:#FCD34D}
+html[data-theme=dark] .c-bad{background:rgba(248,113,113,.16);color:#FCA5A5}
+html[data-theme=dark] [data-evidence-state=confirmed] .evidence-state{border-color:rgba(110,231,183,.5);color:#6EE7B7}
+html[data-theme=dark] [data-evidence-state=unconfirmed] .evidence-state,html[data-theme=dark] [data-evidence-state=unknown] .evidence-state{border-color:rgba(252,211,77,.5);color:#FCD34D}
+html[data-theme=dark] [data-evidence-state=private] .evidence-state,html[data-theme=dark] [data-evidence-state=noncomparable] .evidence-state{border-color:rgba(252,165,165,.5);color:#FCA5A5}
+html[data-theme=dark] .miss{color:#6B7690}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="app">
+<nav class="side" aria-label="주 메뉴">
+<div class="brand"><div class="brand-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"></path></svg></div><div><b>편입 배치상담</b><span>상담 콘솔</span></div></div>
+<div class="side-nav">
+<a href="#top" aria-current="location"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"></path></svg><span class="lbl">대시보드</span></a>
+<a href="#omrCard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"></path></svg><span class="lbl">기출 OMR 입력</span></a>
+<a href="#findTitle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4-6 8-6s7 2 8 6"></path></svg><span class="lbl">학생 찾기</span></a>
+<a href="#verdictTitle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 10v10"></path></svg><span class="lbl">학교별 판정</span></a>
+<a href="#counselCompareTitle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v18M16 3v18M3 8h5M16 16h5"></path></svg><span class="lbl">후보 비교</span></a>
+<a href="#calibBox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 7h8M8 12h2M12 12h2M8 16h2M12 16h2M16 12v4"></path></svg><span class="lbl">기출 환산표</span></a>
+<a href="#warnBox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20h4"></path></svg><span class="lbl">입력 알림</span><span class="badge" id="navWarnBadge" hidden></span></a>
+</div>
+<div class="side-ring" id="sideRing" hidden></div>
+</nav>
+<div class="wrap" id="top">
 
-<h1>편입 배치상담</h1>
-<div class="sub">기출 OMR 엑셀을 여러 회차 올리면 학생별로 이어 붙입니다. 처리는 전부 이 브라우저 안에서 일어나며 파일은 밖으로 나가지 않습니다.</div>
+<header class="topbar">
+<div><h1>편입 배치상담</h1>
+<div class="sub">기출 OMR 엑셀을 여러 회차 올리면 학생별로 이어 붙입니다. 처리는 전부 이 브라우저 안에서 일어나며 파일은 밖으로 나가지 않습니다.</div></div>
+<button type="button" id="themeToggle" class="theme-btn" aria-label="어두운 화면으로"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="themeIcon" d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"></path></svg></button>
+</header>
 
-<div class="card">
+<div class="card" id="omrCard">
   <div id="drop" class="drop" role="button" tabindex="0" aria-controls="file" aria-describedby="uploadHelp" aria-label="기출 OMR 파일 추가 선택">
     <b>기출 OMR 엑셀을 고르세요 (여러 개)</b>
     <span id="uploadHelp">Enter·Space 또는 클릭으로 추가 선택 · .xlsx / .xls / .csv · 오류 시 기존 기록 유지</span>
@@ -425,6 +551,7 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 
 </div>
 
+</div>
 </div>
 
 <script>/* vendor-xlsx.js */
@@ -2375,6 +2502,7 @@ function render(studentOnly=false){
   const warnBad = WARN.filter(w => w[0] === 'bad').length, warnWarn = WARN.filter(w => w[0] === 'warn').length, waiting = INPUT_QUEUE.filter(x => x.status === 'pending').length;
   $('warnSummary').textContent = '입력 알림 ' + WARN.length + '건 · 확인 필요 ' + warnBad + ' · 주의 ' + warnWarn + (waiting ? ' · 시험지 확인 대기 ' + waiting + '건(백데이터의 시험지 확인)' : '');
   if(warnBad || waiting) $('warnBox').open = true;
+  $('navWarnBadge').hidden = !WARN.length; $('navWarnBadge').textContent = WARN.length;
 
   if(!SESSIONS.length){ $('summary').innerHTML = ''; $('sessions').innerHTML = ''; $('students').innerHTML = ''; $('axes').innerHTML = ''; renderL2(); renderPercentilePosition(); restore();return; }
 
@@ -2623,7 +2751,7 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
   // 2026-10-20 사용자 결정: 학과마다 ① 기출 점수 ② 모의 백분위 판정을 따로 낸 뒤 «둘 다 있으면 낮은 쪽»으로 합친다. 학과 키 = 학과|전형|캠퍼스.
   const keyOf = r => [r.raw.department, r.raw.track, r.raw.campus || ''].join('|');
   // gap = 적정 기준(합격 최저 / 합격자 백분위 하위25%)까지의 간격. 음수면 도전이고, 학과를 합칠 때도 낮은 쪽을 쓴다.
-  const put = (v, r, src, verdict, detail, gap) => { const k = keyOf(r), d = v.depts.get(k) || v.depts.set(k, {department:r.raw.department, track:r.raw.track, campus:r.raw.campus}).get(k); d[src] = {verdict, detail, gap}; };
+  const put = (v, r, src, verdict, detail, gap, dist = null) => { const k = keyOf(r), d = v.depts.get(k) || v.depts.set(k, {department:r.raw.department, track:r.raw.track, campus:r.raw.campus}).get(k); d[src] = {verdict, detail, gap, dist}; };
   // 계열을 주면 그 계열 학과만 판정한다. 계열을 모르는 학과는 세어 두고 뺀다(다른 계열 학과는 세지 않는다). 점수·백분위에 같은 학과가 있어도 한 번만 센다.
   const fieldOk = (v, r) => { if(!field) return true; const f = fieldOf ? fieldOf(r) : null; if(f === field) return true; if(f == null) v.unknownKeys.add(keyOf(r)); return false; };
   const latest = new Map();
@@ -2659,7 +2787,7 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
       const verdict = ma && VERDICTS.indexOf(ma) < VERDICTS.indexOf(en) ? ma : en;   // 자연: 영어·수학 중 낮은 쪽
       put(v, r, 'pct', verdict, (studentPct.estimated ? '기출 환산 추정 백분위 ' + val + '(±' + studentPct.mae + ')' : '내 영어 모의 백분위 ' + val) + ' vs 합격자 백분위 하위25% ' + q1 + (Number.isFinite(med) ? ' · 중앙 ' + med : '') + ' · 상위25% ' + q3 + ' (합격자 ' + (r.n ?? '미상') + '명' + (Number.isInteger(r.n) && r.n < 10 ? ' · 표본 적음' : '') + (Array.isArray(r.known_years) && r.known_years.length ? ' · ' + (r.known_years.length > 1 ? Math.min(...r.known_years) + '~' + Math.max(...r.known_years) + ' 합산' : r.known_years[0] + '학년도') : '') + ')' +
         (md ? ' / 내 수학 ' + mval + ' vs 합격자 수학 하위25% ' + md.q1 + ' · 중앙 ' + md.med + ' · 상위25% ' + md.q3 + ' (' + md.n + '명) → 영어 ' + en + ' · 수학 ' + ma + ' 중 낮은 쪽' : field === '자연' ? ' · 수학 비교 없음' : '') + ' · 모의 계열·기간 미확인 — 참고',
-        ma ? Math.min(val - q1, mval - md.q1) : val - q1);
+        ma ? Math.min(val - q1, mval - md.q1) : val - q1, {q1, med, q3});   // dist: 대시보드 구간 차트용(판정에는 안 쓴다)
     }
   }
   for(const v of out.values()){
@@ -2671,7 +2799,7 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
       if(pc) srcs.add('pct');
       const verdict = sc && pc ? VERDICTS[Math.min(VERDICTS.indexOf(sc.verdict), VERDICTS.indexOf(pc.verdict))] : one.verdict;
       v.groups[verdict].push({department:d.department, track:d.track, campus:d.campus, sources:sc && pc ? ['score','pct'] : [sc ? 'score' : 'pct'], split:!!(sc && pc && sc.verdict !== pc.verdict),
-        gap:sc && pc ? Math.min(sc.gap, pc.gap) : one.gap,
+        gap:sc && pc ? Math.min(sc.gap, pc.gap) : one.gap, dist:pc?.dist || null,
         detail:sc && pc ? '기출 점수 ' + sc.verdict + ' · 모의 백분위 ' + pc.verdict + (sc.verdict === pc.verdict ? ' — 같음' : ' — 엇갈림, 낮은 쪽 ' + verdict) + ' / ' + sc.detail + ' / ' + pc.detail : one.detail});
     }
     if(srcs.size) v.basis = srcs.size === 2 ? 'both' : [...srcs][0];
@@ -2728,7 +2856,8 @@ const BAND_ICON = {
   도전:'<polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="15 7 21 7 21 13"></polyline>',
   적정:'<circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle>',
   안정:'<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path><polyline points="8.5 12 11 14.5 15.5 10"></polyline>'};
-const VB_CARDS = 6, VB_CHIPS = 12;   /* 칸마다 학교 카드 6개 · 판정마다 학과 칩 12개까지 펼쳐 두고 나머지는 접는다 */
+const VB_CARDS = 6, VB_CHIPS = 12, VB_RANGE_ROWS = 10;   /* 칸마다 학교 카드 6개 · 판정마다 학과 칩 12개까지 펼쳐 두고 나머지는 접는다 · 구간 차트는 학생과 가까운 10개교까지 */
+const KPI_HINT = {도전:'상향 지원', 적정:'주력 지원', 안정:'안전 지원'};
 const bandIcon = g => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + BAND_ICON[g] + '</svg>';
 /* 도전/적정/안정 학과 수 비율 막대 — 색만으로 읽히지 않게 옆에 숫자를 항상 함께 둔다 */
 const distBar = c => { const n = c[0] + c[1] + c[2]; return '<span class="vb-dist" aria-hidden="true">' + VERDICTS.map((g, i) => c[i] ? '<i class="d-' + BAND_CLASS[g].slice(5) + '" style="width:' + (c[i] / n * 100).toFixed(1) + '%"></i>' : '').join('') + '</span>'; };
@@ -2741,13 +2870,27 @@ function schoolBand(v){
   return {band:VERDICTS[all[mid]], ease:all.reduce((a,b) => a + b, 0) / all.length, n:all.length, gap:gaps.length ? gaps[Math.floor((gaps.length - 1) / 2)] : null};
 }
 const gapText = v => Number.isFinite(v.place.gap) && v.place.gap < 0 ? '기준까지 −' + (Math.round(-v.place.gap * 10) / 10) + '점' : '';
+/* 2026-10-31 19단계(핸드오프 §8 결정 5): 사이드 메뉴 아래 «판정 가능 학생» = 영어 백분위(학원 모의 또는 기출 환산)가 있는 학생 / 불러온 학생. */
+function renderSideStats(calib){
+  const box = $('sideRing');
+  if(!box) return;
+  const keys = [...ROSTER.keys()];
+  box.hidden = !keys.length;
+  if(!keys.length){ box.innerHTML = ''; return; }
+  const ok = keys.filter(k => studentPercentile(k) || estimateFrom(sittingAccuracy(k), calib)).length, files = new Set(SESSIONS.map(s => s.source_sha256 || s.stem)).size, c = 2 * Math.PI * 48;
+  box.innerHTML = '<svg width="104" height="104" viewBox="0 0 120 120" role="img" aria-label="불러온 학생 ' + keys.length + '명 중 ' + ok + '명 판정 가능"><circle cx="60" cy="60" r="48" fill="none" stroke="var(--track)" stroke-width="10"></circle>' +
+    (ok ? '<circle cx="60" cy="60" r="48" fill="none" stroke="var(--mid-bar)" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (c * ok / keys.length).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 60 60)"></circle>' : '') +
+    '<text x="60" y="60" text-anchor="middle" class="v">' + ok + '</text><text x="60" y="78" text-anchor="middle" class="lbl">/ ' + keys.length + '명</text></svg><p>판정 가능 학생<br>기출 OMR ' + files + '개 파일 반영</p>';
+}
 function renderSchoolVerdict(){
   const box = $('schoolVerdict'), key = $('pstu').value;
   if(!box) return;
+  const calib = calibrationTable();
+  renderSideStats(calib);
   if(!key || !ROSTER.has(key)){ box.innerHTML = '<p class="vb-empty">기출 OMR을 올리고 학생을 찾으면 학교별 결과가 나옵니다.</p>'; return; }
   if(VERDICT_STUDENT !== key){ VERDICT_STUDENT = key; VERDICT_OPEN = ''; }
   const sf = studentField(key), field = sf.field, real = studentPercentile(key), ma = manualPercentile(key, '수학');
-  const calib = calibrationTable(), en = real || estimateFrom(sittingAccuracy(key), calib);
+  const en = real || estimateFrom(sittingAccuracy(key), calib);
   const scoreRows = window.PLACEMENT_SCORE_EVIDENCE?.rows || [], pctRows = window.PLACEMENT_PERCENTILE_EVIDENCE?.records || [];
   const list = schoolVerdicts({attempts:studentAttempts(key), scoreRows, pctRows,
     studentPct:en, fits:placement(key, 'all', field), field, fieldOf:deptFieldOf, mathPct:field === '자연' ? ma : null, mathOf:mathDistOf, written:WRITTEN_EXAM_SCHOOLS});
@@ -2758,9 +2901,18 @@ function renderSchoolVerdict(){
   const inBand = g => banded.filter(v => v.place.band === g).sort((a,b) => (g === '도전' ? near(a, b) : 0) || a.place.ease - b.place.ease || a.school.localeCompare(b.school, 'ko'));
   if(!banded.some(v => v.school === VERDICT_OPEN)) VERDICT_OPEN = (['적정','도전','안정'].map(g => inBand(g)[0]).find(Boolean) || {}).school || '';
   const pctText = (s, p) => p?.estimated ? s + ' 기출 환산 추정 백분위 ' + p.val.toFixed(1) + '(±' + p.mae + ')' : p && Number.isFinite(p.val) ? s + ' 모의 백분위 ' + p.val.toFixed(1) + (p.n < 3 ? '(' + p.n + '회 · 참고)' : '') : s + ' 모의 백분위 없음';
-  const num = (s, p) => '<div class="vb-num"><p class="vb-meta">' + s + (p?.estimated ? ' 백분위 · 기출 환산 추정' : ' 모의 백분위') + '</p>' + (p && Number.isFinite(p.val)
-    ? '<b>' + p.val.toFixed(1) + '</b>' + (p.estimated ? '<p class="vb-meta" title="환산표 오차 ±' + p.tableMae + ' · 기출 모의 ' + p.n + '회(학교·연도 합산)일 때 실측 오차 하한 ±' + sheetMaeFloor(p.n) + ' 중 큰 쪽">±' + p.mae + ' · 기출 모의 ' + p.n + '회(' + [...new Set(p.from.map(f => f.school))].join('·') + ')로 환산</p>' : p.n < 3 ? '<p class="vb-meta">' + p.n + '회 · 참고</p>' : '')
-    : '<b class="none">—</b><p class="vb-meta">' + (s === '수학' ? '미입력 · 영어만 비교' : '미입력') + '</p>') + '</div>';
+  /* 2026-10-31 19단계: 백분위는 원형 게이지로. 환산 추정의 ±·회차 문구는 그대로 둔다. */
+  const num = (s, p) => {
+    const ok = p && Number.isFinite(p.val), r = 58, c = 2 * Math.PI * r, gid = 'vbRing' + (s === '수학' ? 'M' : 'E');
+    return '<div class="vb-num"><svg class="vb-ring" width="128" height="128" viewBox="0 0 140 140" role="img" aria-label="' + s + (p?.estimated ? ' 기출 환산 추정 백분위 ' : ' 모의 백분위 ') + (ok ? p.val.toFixed(1) : '없음') + '">' +
+      '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--glow)"></stop><stop offset="1" style="stop-color:var(--safe-bar)"></stop></linearGradient></defs>' +
+      '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="var(--track)" stroke-width="12"></circle>' +
+      (ok ? '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="url(#' + gid + ')" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + (c * Math.max(0, Math.min(1, p.val / 100))).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 70 70)"></circle>' : '') +
+      '<text x="70" y="76" text-anchor="middle" class="v">' + (ok ? p.val.toFixed(1) : '—') + '</text><text x="70" y="98" text-anchor="middle" class="lbl">' + s + ' 백분위</text></svg>' +
+      '<p class="vb-meta">' + s + (p?.estimated ? ' 백분위 · 기출 환산 추정' : ' 모의 백분위') + '</p>' + (ok
+      ? (p.estimated ? '<p class="vb-meta" title="환산표 오차 ±' + p.tableMae + ' · 기출 모의 ' + p.n + '회(학교·연도 합산)일 때 실측 오차 하한 ±' + sheetMaeFloor(p.n) + ' 중 큰 쪽">±' + p.mae + ' · 기출 모의 ' + p.n + '회(' + [...new Set(p.from.map(f => f.school))].join('·') + ')로 환산</p>' : p.n < 3 ? '<p class="vb-meta">' + p.n + '회 · 참고</p>' : '')
+      : '<p class="vb-meta">' + (s === '수학' ? '미입력 · 영어만 비교' : '미입력') + '</p>') + '</div>';
+  };
   const dept = d => [d.campus, d.department, d.track && d.track !== '일반' ? d.track : ''].filter(Boolean).join(' · ');
   const card = v => '<button type="button" class="vb-card" data-verdict-open="' + esc(v.school) + '" aria-pressed="' + (VERDICT_OPEN === v.school) + '">' +
     '<span class="top"><b>' + esc(v.school) + '</b>' + (v.place.band === '도전' && gapText(v) ? '<span class="vb-gap" title="학과별 적정 기준(합격 최저 · 합격자 백분위 하위25%)까지 모자란 점수의 가운데 값">' + gapText(v) + '</span>' : '') +
@@ -2785,21 +2937,58 @@ function renderSchoolVerdict(){
   const scoreHead = sel && sel.attempt ? 'OMR ' + sel.attempt.year + ' 기출 ' + sel.attempt.score + '점과 과거 합격 최저 비교' : '';
   const splitN = sel ? VERDICTS.reduce((n, g) => n + sel.groups[g].filter(d => d.split).length, 0) : 0;
   const head = sel && (sel.basis === 'both' ? scoreHead + ' · ' + pctHead + ' — 둘 다 있는 학과는 낮은 쪽 판정' + (splitN ? ' (엇갈린 학과 ' + splitN + '곳)' : '') : sel.basis === 'score' ? scoreHead : pctHead);
-  box.innerHTML = '<div class="vb">' +
-    '<div class="vb-head"><div class="vb-who"><p class="vb-meta">학생 결과</p><h3 class="vb-name">' + esc(ROSTER.get(key).name) + '</h3><p class="vb-meta">' + esc(studentLabel(key)) + ' · 기출 OMR ' + studentTook(key) + '회 반영</p></div>' +
-      '<div class="vb-nums">' + num('영어', en) + (field === '자연' ? num('수학', ma) : '') + '</div>' +
-      '<div class="vb-fieldbox"><div class="vb-field" role="group" aria-label="학생 계열">' + [['인문','인문 · 영어'],['자연','자연 · 영어+수학']].map(([f,l]) => '<button type="button" data-student-field="' + f + '" aria-pressed="' + (field === f) + '">' + l + '</button>').join('') + '</div><p class="vb-meta">' + esc(sf.how) + '</p></div></div>' +
-    '<p class="vb-lead">' + field + '계열 학과만 봅니다 · 학교는 그 학교 학과 판정의 가운데 값 칸에 놓입니다' + (unknown ? ' · 계열을 확인하지 못한 학과 ' + unknown + '곳은 뺐습니다' : '') + '</p>' +
-    (banded.length
-      ? '<div class="vb-sum"><p>학과 판정 합계 <b>' + totN + '곳</b></p>' + distBar(tot) + '<p class="vb-legend">' + VERDICTS.map((g, i) => '<span><i class="d-' + BAND_CLASS[g].slice(5) + '"></i>' + g + ' ' + tot[i] + '</span>').join('') + '</p></div>' +
-        '<div class="vb-board">' + VERDICTS.map(col).join('') + '</div>'
-      : '<p class="vb-empty">이 학생은 아직 비교할 점수·백분위가 없습니다. 위 「영어·수학 모의 백분위 직접 입력」에 넣거나 기출 OMR을 더 올리세요.</p>') +
-    (sel ? '<div class="vb-detail" data-verdict-school="' + esc(sel.school) + '" data-verdict-basis="' + sel.basis + '"><div class="vb-dhead"><h3>' + esc(sel.school) + '</h3><span class="vb-pill ' + BAND_CLASS[sel.place.band] + '">' + sel.place.band + '</span><span class="vb-meta">' + BASIS_SHORT[sel.basis] + ' 기준</span></div>' +
-      '<p class="vb-lead">' + esc(head) + '</p><div class="vb-groups">' +
+  /* 2026-10-31 19단계: 대시보드 배치(docs/대시보드_디자인핸드오프.md). 계산은 위 그대로이고 그리는 방식만 바꿨다. */
+  const vmid = a => { const s = a.filter(Number.isFinite).sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : null; };
+  const sits = [...sittingAccuracy(key).values()], last = sits.at(-1);
+  const srcTag = en?.estimated ? '<span class="vb-tag src-est">기출 환산 추정</span>' : en ? '<span class="vb-tag src-mock">학원 모의고사</span>' : '<span class="vb-tag">백분위 없음</span>';
+  const hero = '<div class="vb-head"><div class="vb-nums">' + num('영어', en) + (field === '자연' ? num('수학', ma) : '') + '</div>' +
+    '<div class="vb-who"><div class="vb-tags">' + srcTag + '</div><p class="vb-meta">학생 결과</p><h3 class="vb-name">' + esc(ROSTER.get(key).name) + '</h3><p class="vb-meta">' + esc(studentLabel(key)) + ' · 기출 OMR ' + studentTook(key) + '회 반영</p>' +
+    '<div class="vb-stats"><div title="' + esc(last ? '가장 나중에 올린 회차 · ' + last.school + ' ' + last.year : '') + '">마지막 기출 정답률<b>' + (last ? Math.round(last.acc * 100) + '%' : '—') + '</b></div><div>기출 모의<b>' + sits.length + '회</b></div><div>계열<b>' + field + '</b></div></div>' +
+    '<div class="vb-fieldbox"><div class="vb-field" role="group" aria-label="학생 계열">' + [['인문','인문 · 영어'],['자연','자연 · 영어+수학']].map(([f,l]) => '<button type="button" data-student-field="' + f + '" aria-pressed="' + (field === f) + '">' + l + '</button>').join('') + '</div><p class="vb-meta">' + esc(sf.how) + '</p></div></div></div>';
+  const kpis = VERDICTS.map((g, i) => '<div class="vb-kpi"><div class="k-top"><span class="' + BAND_CLASS[g] + '">' + bandIcon(g) + g + '</span><span class="k-hint">' + KPI_HINT[g] + '</span></div>' +
+    '<div class="k-num ' + BAND_CLASS[g] + '">' + inBand(g).length + '<small>개교</small></div><div class="k-bar"><i class="d-' + BAND_CLASS[g].slice(5) + '" style="width:' + (totN ? tot[i] / totN * 100 : 0).toFixed(1) + '%"></i></div>' +
+    '<p class="k-sub">학과 ' + tot[i] + '곳 · 전체의 ' + (totN ? Math.round(tot[i] / totN * 100) : 0) + '%</p></div>').join('');
+  // 구간 차트(핸드오프 §8 결정 2): 막대 = 학과별 합격자 하위25%·상위25%의 가운데 값. 태그는 차트 위치가 아니라 학교 판정이다.
+  const rows = Number.isFinite(en?.val) ? banded.map(v => { const ds = VERDICTS.flatMap(g => v.groups[g]).map(d => d.dist).filter(Boolean); return {v, q1:vmid(ds.map(d => d.q1)), med:vmid(ds.map(d => d.med)), q3:vmid(ds.map(d => d.q3))}; })
+      .filter(r => Number.isFinite(r.q1) && Number.isFinite(r.q3)).sort((a, b) => Math.abs((a.med ?? (a.q1 + a.q3) / 2) - en.val) - Math.abs((b.med ?? (b.q1 + b.q3) / 2) - en.val))
+      .slice(0, VB_RANGE_ROWS).sort((a, b) => (b.med ?? b.q3) - (a.med ?? a.q3) || a.v.school.localeCompare(b.v.school, 'ko')) : [];
+  const lo = rows.length ? Math.min(40, Math.floor(Math.min(en.val, ...rows.map(r => r.q1)) / 10) * 10) : 40, at = x => (x - lo) / (100 - lo) * 100;
+  const range = rows.length ? '<div class="vb-range"><div class="vb-cardhead"><h3>합격자 백분위 구간 속 학생 위치</h3><p>학생과 가까운 ' + rows.length + '개교 · 참고 그림 — 판정은 학과별로 합니다</p></div>' +
+    '<div class="vb-bands" role="img" aria-label="' + esc(rows.map(r => r.v.school + ' ' + r.v.place.band + ' · 합격자 ' + r.q1 + '~' + r.q3).join(', ') + ' · 학생 ' + en.val.toFixed(1)) + '" style="--f:' + (at(en.val) / 100).toFixed(4) + '">' +
+    '<i class="vb-me"></i>' + rows.map(r => '<div class="vb-bandrow"><span title="' + esc(r.v.school) + '">' + esc(r.v.school) + '</span><div class="vb-track"><i class="rg d-' + BAND_CLASS[r.v.place.band].slice(5) + '" style="left:' + at(r.q1).toFixed(2) + '%;width:' + Math.max(at(r.q3) - at(r.q1), 0.8).toFixed(2) + '%"></i>' +
+      (Number.isFinite(r.med) ? '<i class="md" style="left:' + at(r.med).toFixed(2) + '%"></i>' : '') + '</div><span class="vb-pill ' + BAND_CLASS[r.v.place.band] + '">' + r.v.place.band + '</span></div>').join('') +
+    '<div class="vb-axis"><span></span><div>' + [0, 1, 2, 3, 4].map(k => '<span>' + Math.round(lo + k * (100 - lo) / 4) + '</span>').join('') + '</div><span></span></div></div>' +
+    '<p class="vb-meta">막대 = 학과별 합격자 하위25%~상위25%의 가운데 값 · 흰 점 = 중앙 · 세로선 = 학생 ' + (en.estimated ? '기출 환산 추정 ' : '모의 백분위 ') + en.val.toFixed(1) + '</p></div>' : '';
+  const circ = 2 * Math.PI * 70, nz = tot.filter(Boolean).length;
+  let acc = 0;
+  const arcs = VERDICTS.map((g, i) => { const len = totN ? tot[i] / totN * circ : 0, s = tot[i] ? '<circle cx="100" cy="100" r="70" fill="none" stroke="var(--' + BAND_CLASS[g].slice(5) + '-bar)" stroke-width="22" stroke-dasharray="' + Math.max(len - (nz > 1 ? 3 : 0), 0.5).toFixed(1) + ' ' + circ.toFixed(1) + '" stroke-dashoffset="' + (-acc).toFixed(1) + '" transform="rotate(-90 100 100)"></circle>' : ''; acc += len; return s; }).join('');
+  const donut = '<div class="vb-sum"><h3>학과 판정 분포</h3><p>학과 판정 합계 <b>' + totN + '곳</b></p><div class="vb-donut"><svg width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="학과 ' + totN + '곳 중 ' + VERDICTS.map((g, i) => g + ' ' + tot[i]).join(', ') + '">' +
+    '<circle cx="100" cy="100" r="70" fill="none" stroke="var(--track)" stroke-width="22"></circle>' + arcs + '<text x="100" y="102" text-anchor="middle" class="v">' + totN.toLocaleString('ko-KR') + '</text><text x="100" y="124" text-anchor="middle" class="lbl">학과 판정</text></svg></div>' +
+    '<p class="vb-legend">' + VERDICTS.map((g, i) => '<span><i class="d-' + BAND_CLASS[g].slice(5) + '"></i>' + g + '<b>' + tot[i] + '</b><em>' + (totN ? Math.round(tot[i] / totN * 100) : 0) + '%</em></span>').join('') + '</p></div>';
+  const sd = sel ? VERDICTS.flatMap(g => sel.groups[g]).map(d => d.dist).filter(Boolean) : [];
+  const dstat = (l, v) => '<div>' + l + '<b>' + v + '</b></div>';
+  const detail = sel ? '<div class="vb-detail" data-verdict-school="' + esc(sel.school) + '" data-verdict-basis="' + sel.basis + '"><div class="vb-dhead"><h3>' + esc(sel.school) + '</h3><span class="vb-pill ' + BAND_CLASS[sel.place.band] + '">' + sel.place.band + '</span><span class="vb-meta">' + BASIS_SHORT[sel.basis] + ' 기준 · 학교 판정 = 학과 판정의 가운데 값</span></div>' +
+      '<p class="vb-lead">' + esc(head) + '</p><div class="vb-dstats">' + dstat('학과 판정', sel.place.n + '곳') + dstat('적정·안정 비율', Math.round((sel.counts[1] + sel.counts[2]) / sel.place.n * 100) + '%') +
+      (sd.length ? dstat('합격자 하위25% · 학과 가운데', vmid(sd.map(d => d.q1))) + dstat('합격자 중앙 · 학과 가운데', vmid(sd.map(d => d.med)) ?? '—') : '') + '</div><div class="vb-groups">' +
       VERDICTS.map(g => '<div><p class="vb-band ' + BAND_CLASS[g] + '">' + g + ' <span>' + sel.groups[g].length + '곳</span></p>' + (sel.groups[g].length ? chips(g, sel.groups[g]) : '<p class="vb-empty">없음</p>') + '</div>').join('') + '</div>' +
       (sel.notes.length ? '<p class="vb-meta vb-notes-in">' + sel.notes.map(esc).join('<br>') + '</p>' : '') +
       '<details class="vb-why"><summary>판정 근거 보기 (강사용)</summary><div class="tw"><table><thead><tr><th>학과</th><th>판정</th><th>근거</th></tr></thead><tbody>' +
-      VERDICTS.flatMap(g => sel.groups[g].map(d => '<tr><td>' + esc(dept(d)) + '</td><td class="' + BAND_CLASS[g] + '"><b>' + g + '</b></td><td>' + esc(d.detail) + '</td></tr>')).join('') + '</tbody></table></div></details></div>' : '') +
+      VERDICTS.flatMap(g => sel.groups[g].map(d => '<tr><td>' + esc(dept(d)) + '</td><td class="' + BAND_CLASS[g] + '"><b>' + g + '</b></td><td>' + esc(d.detail) + '</td></tr>')).join('') + '</tbody></table></div></details></div>' : '';
+  // 기출 정답률(핸드오프 §8 결정 4): 회차마다 학교·연도가 달라 선으로 잇지 않고 점만 찍는다.
+  const tlo = sits.length ? Math.min(40, Math.floor(Math.min(...sits.map(f => f.acc * 100)) / 10) * 10) : 40, ty = a => 150 - (a * 100 - tlo) / (100 - tlo) * 140, tx = i => sits.length > 1 ? 34 + i * 276 / (sits.length - 1) : 172;
+  const trend = sits.length ? '<div class="vb-trend"><div class="vb-cardhead"><h3>기출 모의 정답률</h3><p>' + sits.length + '회 · 학교·연도 합산</p></div>' +
+    '<svg viewBox="0 0 320 160" width="100%" role="img" aria-label="' + esc('기출 모의 회차별 정답률: ' + sits.map(f => f.school + ' ' + f.year + ' ' + Math.round(f.acc * 100) + '%').join(', ')) + '">' +
+    [0, 1, 2, 3].map(k => { const v = tlo + k * (100 - tlo) / 3, y = ty(v / 100); return '<line x1="30" x2="314" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="var(--line)"></line><text x="0" y="' + (y + 3).toFixed(1) + '">' + Math.round(v) + '%</text>'; }).join('') +
+    sits.map((f, i) => '<circle cx="' + tx(i).toFixed(1) + '" cy="' + ty(f.acc).toFixed(1) + '" r="5" fill="var(--card)" stroke="var(--mid-bar)" stroke-width="2.5"><title>' + esc(f.school + ' ' + f.year + ' · ' + Math.round(f.acc * 100) + '%') + '</title></circle>').join('') + '</svg>' +
+    '<p class="vb-meta">올린 순서대로 찍었습니다. 회차마다 학교·연도가 달라 난도가 다르므로 선으로 잇지 않았습니다.</p>' +
+    '<div class="vb-tbox"><div>백분위 출처<b>' + (en?.estimated ? '기출 환산 추정' : en ? '학원 모의고사' : '없음') + '</b></div><div>' + (en?.estimated ? '기출 환산 오차' : '기출로 환산하면') + '<b>±' + (en?.estimated ? en.mae : sheetMaeFloor(sits.length)) + (en?.estimated ? '' : ' 이상') + ' · ' + sits.length + '회</b></div></div></div>' : '';
+  box.innerHTML = '<div class="vb">' +
+    '<div class="vb-row">' + hero + (banded.length ? kpis : '') + '</div>' +
+    '<p class="vb-lead">' + field + '계열 학과만 봅니다 · 학교는 그 학교 학과 판정의 가운데 값 칸에 놓입니다' + (unknown ? ' · 계열을 확인하지 못한 학과 ' + unknown + '곳은 뺐습니다' : '') + '</p>' +
+    (banded.length
+      ? '<div class="vb-row">' + range + donut + '</div><div class="vb-board" id="vbBoard">' + VERDICTS.map(col).join('') + '</div>'
+      : '<p class="vb-empty">이 학생은 아직 비교할 점수·백분위가 없습니다. 위 「영어·수학 모의 백분위 직접 입력」에 넣거나 기출 OMR을 더 올리세요.</p>') +
+    (detail || trend ? '<div class="vb-row">' + detail + trend + '</div>' : '') +
     (fit.length ? '<div class="vb-fit"><h3>점수·백분위 자료가 없는 학교</h3><p class="vb-meta">기출 출제 유형이 이 학생과 얼마나 맞는지만 봅니다. 합격 가능성이 아닙니다.</p><div class="vb-chips">' + fit.map(v => '<span class="chip ' + FITLBL[v.fit][1] + '" data-verdict-school="' + esc(v.school) + '" data-verdict-basis="fit" title="' + esc(v.notes.join(' ')) + '">' + esc(v.school) + ' · 궁합 ' + FITLBL[v.fit][0] + '</span>').join('') + '</div></div>' : '') +
     (calib.size ? '<details class="vb-calib"><summary>기출 환산표 검증 (강사용)</summary><p class="vb-meta" style="margin-top:8px">학교마다 「그 학교 기출 정답률 → 주간 모의 백분위」 직선입니다. 지금 불러온 학생 중 둘 다 있는 학생으로 만들고, 한 명씩 빼고 예측한 평균 오차로 검증합니다. ' + CALIB_MIN_N + '명 이상 · 오차 ±' + CALIB_MAX_MAE + ' 이하인 학교만 모의 백분위가 없는 학생에게 씁니다.</p>' +
       '<div class="tw"><table><thead><tr><th>학교</th><th>출처</th><th>짝 자료</th><th>검증 오차</th><th>사용</th></tr></thead><tbody>' +
@@ -3576,6 +3765,26 @@ $('pUnit').onchange = renderKeyMatches;
 $('keyAsset').onchange = () => { $('keyRecord').value=''; renderKeyCatalog(); };
 $('keyRecord').onchange = renderKeyDetails;
 $('reset').onclick = () => {if(resetState()){$('file').value='';$('filelist').textContent='전체 입력 초기화 완료 · 파일을 다시 선택하세요.';focusControl('drop');}};
+/* 2026-10-31 19단계: 밝은·어두운 화면(고른 것은 이 브라우저에만 남는다) · 사이드 메뉴 = 같은 페이지 앵커 */
+const THEME_ICON = {dark:'M12 4V2M12 22v-2M4 12H2M22 12h-2M5 5 3.6 3.6M20.4 20.4 19 19M5 19l-1.4 1.4M20.4 3.6 19 5M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z', light:'M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z'};
+function setTheme(theme, save){
+  document.documentElement.dataset.theme = theme;
+  $('themeIcon').setAttribute('d', THEME_ICON[theme]);
+  $('themeToggle').setAttribute('aria-label', theme === 'dark' ? '밝은 화면으로' : '어두운 화면으로');
+  if(save) try{ localStorage.setItem('placement-theme', theme); }catch{}
+}
+setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+$('themeToggle').onclick = () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true);
+document.querySelectorAll('.side-nav a').forEach(a => a.onclick = e => {
+  let target = document.getElementById(a.getAttribute('href').slice(1));
+  if(!target) return;
+  e.preventDefault();
+  if(target.closest('.hide')) target = $('omrCard');   // 아직 OMR을 안 올려 결과가 숨어 있으면 입력 칸으로
+  for(let d = target.closest('details'); d; d = d.parentElement?.closest('details')) d.open = true;
+  target.scrollIntoView({block:'start', behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+  document.querySelectorAll('.side-nav a').forEach(x => x.removeAttribute('aria-current'));
+  a.setAttribute('aria-current', 'location');
+});
 </script>
 </body>
 </html>
