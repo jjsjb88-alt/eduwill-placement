@@ -266,6 +266,7 @@ body{background:var(--bg)}
 .side-nav svg{flex:none}
 .side-nav .badge{margin-left:auto;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--hi-bg);color:var(--hi)}
 .side-ring{margin-top:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;font-size:12px;color:var(--dim)}
+.side-ring[hidden]{display:none}   /* display:flex 가 hidden 속성을 이기므로 따로 끈다 */
 .side-ring p{margin:0}
 .side-ring .v{fill:var(--ink);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}.side-ring .lbl{fill:var(--dim);font-size:11px}
 .topbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin-bottom:20px}
