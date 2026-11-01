@@ -2737,6 +2737,9 @@ function estimateFrom(accs, table){
 }
 function estimatedPercentile(key, table = calibrationTable()){ return estimateFrom(sittingAccuracy(key), table); }
 const SPECIAL_TRACK = /농어촌|기회균|재외국민|특성화/;
+// 2026-11-02 20단계: 합격자 기록이 이만큼 안 되는 학과는 하위25%·상위25%가 크게 흔들린다 — «표본 적음»으로 보이게만 하고 판정은 그대로 둔다.
+// 판정 가능 학과 2,278곳 중 5명 미만 565곳(25%) · 10명 미만 1,285곳(56%)이라 10이면 절반 넘게 붙어 경고가 묻힌다.
+const THIN_N = 5;
 // 2026-10-22 사용자 지시: 학교별 판정은 «편입 영수 필기 전형» 학교만. 근거 = 영어·수학 기출 시험지가 있는 학교
 // (저장소 parsed 영어 2021~2026·math-20xx 28곳 + 학원 기출 모의 기록의 국민대·서울과기대 + 한국공학대 옛 이름 한국산업기술대).
 // 시험지는 없지만 필기 전형으로 확인된 학교는 여기에 더한다. 이름은 캠퍼스 괄호·공백을 뺀 형태.
@@ -2786,9 +2789,9 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
       const {q1, med, q3} = r.distribution, md = mval != null && mathOf ? mathOf(r) : null;
       const en = band(val, r.distribution), ma = md ? band(mval, md) : null;
       const verdict = ma && VERDICTS.indexOf(ma) < VERDICTS.indexOf(en) ? ma : en;   // 자연: 영어·수학 중 낮은 쪽
-      put(v, r, 'pct', verdict, (studentPct.estimated ? '기출 환산 추정 백분위 ' + val + '(±' + studentPct.mae + ')' : '내 영어 모의 백분위 ' + val) + ' vs 합격자 백분위 하위25% ' + q1 + (Number.isFinite(med) ? ' · 중앙 ' + med : '') + ' · 상위25% ' + q3 + ' (합격자 ' + (r.n ?? '미상') + '명' + (Number.isInteger(r.n) && r.n < 10 ? ' · 표본 적음' : '') + (Array.isArray(r.known_years) && r.known_years.length ? ' · ' + (r.known_years.length > 1 ? Math.min(...r.known_years) + '~' + Math.max(...r.known_years) + ' 합산' : r.known_years[0] + '학년도') : '') + ')' +
+      put(v, r, 'pct', verdict, (studentPct.estimated ? '기출 환산 추정 백분위 ' + val + '(±' + studentPct.mae + ')' : '내 영어 모의 백분위 ' + val) + ' vs 합격자 백분위 하위25% ' + q1 + (Number.isFinite(med) ? ' · 중앙 ' + med : '') + ' · 상위25% ' + q3 + ' (합격자 ' + (r.n ?? '미상') + '명' + (Number.isInteger(r.n) && r.n < THIN_N ? ' · 표본 적음' : '') + (Array.isArray(r.known_years) && r.known_years.length ? ' · ' + (r.known_years.length > 1 ? Math.min(...r.known_years) + '~' + Math.max(...r.known_years) + ' 합산' : r.known_years[0] + '학년도') : '') + ')' +
         (md ? ' / 내 수학 ' + mval + ' vs 합격자 수학 하위25% ' + md.q1 + ' · 중앙 ' + md.med + ' · 상위25% ' + md.q3 + ' (' + md.n + '명) → 영어 ' + en + ' · 수학 ' + ma + ' 중 낮은 쪽' : field === '자연' ? ' · 수학 비교 없음' : '') + ' · 모의 계열·기간 미확인 — 참고',
-        ma ? Math.min(val - q1, mval - md.q1) : val - q1, {q1, med, q3});   // dist: 대시보드 구간 차트용(판정에는 안 쓴다)
+        ma ? Math.min(val - q1, mval - md.q1) : val - q1, {q1, med, q3, n:r.n});   // dist: 대시보드 구간 차트·표본 표시용(판정에는 안 쓴다)
     }
   }
   for(const v of out.values()){
@@ -2927,8 +2930,9 @@ function renderSchoolVerdict(){
         (rest.length ? '<details class="vb-more"' + (rest.some(v => v.school === VERDICT_OPEN) ? ' open' : '') + '><summary>외 ' + rest.length + '개교 더 보기</summary><div>' + rest.map(card).join('') + '</div></details>' : '')
         : '<p class="vb-empty">해당 학교 없음</p>') + '</div></div>';
   };
+  const thin = d => Number.isInteger(d.dist?.n) && d.dist.n < THIN_N;   // 20단계: 합격자 기록이 적은 학과(판정은 그대로)
   const chips = (g, ds) => {
-    const one = d => '<span class="vb-chip ' + BAND_CLASS[g] + (d.split ? ' vb-split' : '') + '" title="' + esc(d.detail) + '">' + esc(dept(d)) + (d.split ? '<small> · 엇갈림</small>' : '') + '</span>';
+    const one = d => '<span class="vb-chip ' + BAND_CLASS[g] + (d.split ? ' vb-split' : '') + '" title="' + esc(d.detail) + '"' + (thin(d) ? ' data-thin="' + d.dist.n + '"' : '') + '>' + esc(dept(d)) + (d.split ? '<small> · 엇갈림</small>' : '') + (thin(d) ? '<small> · 표본 적음</small>' : '') + '</span>';
     return '<div class="vb-chips">' + ds.slice(0, VB_CHIPS).map(one).join('') +
       (ds.length > VB_CHIPS ? '<details class="vb-rest"><summary class="' + BAND_CLASS[g] + '">외 ' + (ds.length - VB_CHIPS) + '곳</summary><div class="vb-chips">' + ds.slice(VB_CHIPS).map(one).join('') + '</div></details>' : '') + '</div>';
   };
@@ -2937,7 +2941,9 @@ function renderSchoolVerdict(){
   const pctHead = pctText('영어', en) + (field === '자연' && ma ? ' · ' + pctText('수학', ma) : '') + '와 합격자 백분위 비교';
   const scoreHead = sel && sel.attempt ? 'OMR ' + sel.attempt.year + ' 기출 ' + sel.attempt.score + '점과 과거 합격 최저 비교' : '';
   const splitN = sel ? VERDICTS.reduce((n, g) => n + sel.groups[g].filter(d => d.split).length, 0) : 0;
-  const head = sel && (sel.basis === 'both' ? scoreHead + ' · ' + pctHead + ' — 둘 다 있는 학과는 낮은 쪽 판정' + (splitN ? ' (엇갈린 학과 ' + splitN + '곳)' : '') : sel.basis === 'score' ? scoreHead : pctHead);
+  const thinN = sel ? VERDICTS.reduce((n, g) => n + sel.groups[g].filter(thin).length, 0) : 0;
+  const head = sel && (sel.basis === 'both' ? scoreHead + ' · ' + pctHead + ' — 둘 다 있는 학과는 낮은 쪽 판정' + (splitN ? ' (엇갈린 학과 ' + splitN + '곳)' : '') : sel.basis === 'score' ? scoreHead : pctHead) +
+    (thinN ? ' · 표본 적은 학과 ' + thinN + '곳(합격자 ' + THIN_N + '명 미만 — 기준이 크게 흔들릴 수 있음)' : '');
   /* 2026-10-31 19단계: 대시보드 배치(docs/대시보드_디자인핸드오프.md). 계산은 위 그대로이고 그리는 방식만 바꿨다. */
   const vmid = a => { const s = a.filter(Number.isFinite).sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : null; };
   const sits = [...sittingAccuracy(key).values()], last = sits.at(-1);
