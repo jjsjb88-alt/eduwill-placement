@@ -10,6 +10,7 @@
    판정 글자색은 칩 바탕·카드 위 4.5:1 이상으로 맞췄다(docs/대시보드_디자인핸드오프.md §3-1). */
 :root{
   --bg:#EEF1F8; --card:#fff; --panel2:#F3F5FB; --side:#fff; --tint:#F5F7FF;
+  --viz-me:#2a78d6; --viz-school:#eb6834;   /* 22단계 영역 레이더 — dataviz 검증기 밝은·어두운 모두 PASS */
   --ink:#141A2E; --dim:#56627F; --line:#E1E6F0; --line2:#C9D1E2; --track:#E7EBF4;
   --accent:#3651D6; --accent-solid:#5F4FE0; --glow:#7C6CFF; --glow-soft:rgba(124,108,255,.18);
   --ok:#059669; --warn:#d97706; --bad:#dc2626;
@@ -19,6 +20,7 @@
 }
 html[data-theme=dark]{
   --bg:#090E1C; --card:#121A30; --panel2:#18213B; --side:#0D1426; --tint:#151E38;
+  --viz-me:#3987e5; --viz-school:#d95926;
   --ink:#E9EDF8; --dim:#9AA6C4; --line:rgba(150,166,214,.14); --line2:rgba(150,166,214,.32); --track:rgba(150,166,214,.13);
   --accent:#8FA2FF; --glow-soft:rgba(124,108,255,.32);
   --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
@@ -202,6 +204,27 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 .vb-notes{margin:0;padding-left:18px;font-size:12.5px;color:var(--dim)}
 @media(max-width:1279px){.vb-head{flex-basis:100%}}
 @media(max-width:760px){.vb-bands{--c1:84px;--c3:56px}.vb-head,.vb-detail,.vb-fit{padding:16px}}
+/* 22단계: 선택 학교 영역 비교 — 레이더 + 부담 순서표 (판정과 별개) */
+.vb-axcmp{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px 24px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);align-items:start}
+.vb-axcmp h4{grid-column:1/-1;margin:0;font-size:14px}
+.vb-axcmp .vb-meta{grid-column:1/-1;margin:0}
+.vb-radar svg{width:100%;height:auto;display:block}
+.vb-radar .ring{fill:none;stroke:var(--line)}
+.vb-radar .spoke{stroke:var(--line)}
+.vb-radar .axl{font-size:14px;fill:var(--dim)}
+.vb-radar .me{fill:var(--viz-me);fill-opacity:.14;stroke:var(--viz-me);stroke-width:2;stroke-linejoin:round}
+.vb-radar .sch{fill:none;stroke:var(--viz-school);stroke-width:2;stroke-dasharray:5 4;stroke-linejoin:round}
+.vb-radar circle.me-pt{fill:var(--viz-me);stroke:var(--card);stroke-width:2}
+.vb-radar rect.sch-pt{fill:var(--viz-school);stroke:var(--card);stroke-width:2}
+.vb-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--dim);margin-top:6px}
+.vb-legend i{display:inline-block;width:18px;height:0;vertical-align:middle;margin-right:6px;border-top:2px solid var(--viz-me)}
+.vb-legend i.sch{border-top:2px dashed var(--viz-school)}
+.vb-axrank table{width:100%;border-collapse:collapse;font-size:12.5px}
+.vb-axrank th,.vb-axrank td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums}
+.vb-axrank th{font-weight:600;color:var(--dim);font-size:11.5px;white-space:normal;vertical-align:bottom}
+.vb-axrank .bar{display:inline-block;height:6px;border-radius:3px;background:var(--line2);vertical-align:middle;margin-right:6px}
+.vb-axrank tr:first-child td{font-weight:600}
+@media(max-width:760px){.vb-axcmp{grid-template-columns:minmax(0,1fr)}.vb-radar{max-width:320px}}
 @media(max-width:600px){.vb-kpi .k-num{font-size:28px}.vb-range,.vb-sum,.vb-trend,.vb-kpi,.vb-col{padding:16px}}
 @media(max-width:380px){.vb-bands{--c1:72px;--c3:0px}.vb-bandrow .vb-pill{display:none}}
 @media(forced-colors:active){.vb-card[aria-pressed=true]{outline:2px solid Highlight}.vb-dist,.vb-track,.vb-chip,.vb-pill,.vb-tag{border:1px solid CanvasText}}
@@ -2817,7 +2840,8 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
   for(const f of fits || []){
     const v = get(f.stem.split('_')[0]);
     // 2026-11-04 21단계: 판정과 별개로 모든 학교에 궁합을 붙인다(점수 가감 없음 — 4-19 에서 판정 효과가 없었다). fits 는 부담 낮은 순이라 학교마다 첫 시험지 = 가장 잘 맞는 시험지.
-    if(!v.fitInfo) v.fitInfo = {fit:f.fit, worst:f.worst?.axis || null, stem:f.stem};
+    if(!v.fitInfo) v.fitInfo = {fit:f.fit, worst:f.worst?.axis || null, stem:f.stem,
+      axes:(f.axes || []).map(({axis, demand, acc, burden}) => ({axis, demand, acc, burden}))};   // 22단계 영역 비교용(demand = 학교들 사이 자리값 0~100)
     if(v.basis !== 'none') continue;
     v.basis = 'fit'; v.fit = f.fit; v.notes.push('출제 궁합 ' + ({good:'잘 맞음',mid:'보통',bad:'부담'})[f.fit] + ' — 학생 능력 구성과 이 학교 시험의 맞음 정도이며 합격 가능성이 아닙니다' + (f.worst ? ' · 가장 걸리는 영역 ' + f.worst.axis : ''));
   }
@@ -2867,6 +2891,7 @@ const BAND_ICON = {
   도전:'<polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="15 7 21 7 21 13"></polyline>',
   적정:'<circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle>',
   안정:'<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path><polyline points="8.5 12 11 14.5 15.5 10"></polyline>'};
+const RADAR_MIN_N = 10;   /* 22단계: 학생 자리값은 영역마다 올린 학생(그 영역 10문항 이상) 10명 이상일 때만 그린다 */
 const VB_CARDS = 6, VB_CHIPS = 12, VB_RANGE_ROWS = 10;   /* 칸마다 학교 카드 6개 · 판정마다 학과 칩 12개까지 펼쳐 두고 나머지는 접는다 · 구간 차트는 학생과 가까운 10개교까지 */
 const KPI_HINT = {도전:'상향 지원', 적정:'주력 지원', 안정:'안전 지원'};
 const bandIcon = g => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + BAND_ICON[g] + '</svg>';
@@ -2927,7 +2952,40 @@ function renderSchoolVerdict(){
   const dept = d => [d.campus, d.department, d.track && d.track !== '일반' ? d.track : ''].filter(Boolean).join(' · ');
   // 21단계: 출제 궁합 보조 표시 — 판정(도전·적정·안정)을 바꾸지 않는다. 궁합은 이 학생이 볼 학교들 «안에서»의 3등분 자리다.
   const FIT_KO = {good:'잘 맞음', mid:'보통', bad:'부담'};
-  const FIT_TIP = '출제 궁합 — 이 학생의 영역별 정답률과 이 학교 시험의 영역 비중을 맞대 본 것입니다(학생이 볼 학교들 안에서 3등분). 합격 가능성이 아니며 판정에 더하지 않습니다.';
+  const FIT_TIP = '출제 궁합 — 이 학생의 영역별 정답률과, 이 학교 시험이 다른 학교보다 그 영역을 얼마나 많이 묻는지를 맞대 본 것입니다(학생이 볼 학교들 안에서 3등분). 합격 가능성이 아니며 판정에 더하지 않습니다.';
+  /* 22단계: 영역 비교 — 학교 쪽 = 같은 해 학교들 사이 자리값(DB.profiles · 100 = 그 영역을 가장 많이 묻는 학교 · 여러 해 평균),
+     학생 쪽 = 지금 올린 학생들 사이 자리값(그 영역 정답률이 나보다 낮은 학생 비율 · 동점은 절반). 둘 다 0~100 이라 겹쳐 볼 수 있다.
+     정답률(%)과 학교 자리값을 한 축에 바로 겹치지 않는다 — 단위가 달라 «요구치를 넘었다» 같은 거짓 비교가 된다. */
+  const AX_LABEL = Object.fromEntries(SKILLS.map(s => [s.axis, s.label]));
+  let cohort = null;
+  const cohortOf = () => cohort ||= (() => { const by = {};
+    for(const k of ROSTER.keys()) cumAxes(k).forEach((a, i) => { if(a.acc != null && !a.thin) (by[SKILLS[i].axis] ||= []).push(a.acc); });
+    return by; })();
+  const mePct = (ax, v) => { const arr = cohortOf()[ax] || [];
+    return arr.length < RADAR_MIN_N || !Number.isFinite(v) ? null : {pct:Math.round(100 * (arr.filter(x => x < v).length + arr.filter(x => x === v).length / 2) / arr.length), n:arr.length}; };
+  const axCompare = s => {
+    const ax = s.fitInfo?.axes || [];
+    if(ax.length < 4) return '';
+    const rows = ax.map(a => ({...a, me:mePct(a.axis, a.acc)})), meOk = rows.every(r => r.me), nMin = Math.min(...rows.map(r => r.me?.n ?? 0));
+    const N = rows.length, R = 86, cx = 150, cy = 122, pt = (i, v) => { const t = -Math.PI / 2 + 2 * Math.PI * i / N; return [cx + R * v / 100 * Math.cos(t), cy + R * v / 100 * Math.sin(t)]; };
+    const poly = (vals, cls) => '<polygon class="' + cls + '" points="' + vals.map((v, i) => pt(i, v).map(n => n.toFixed(1)).join(',')).join(' ') + '"/>';
+    const tip = r => esc(AX_LABEL[r.axis] + ' — 이 학교가 묻는 정도 ' + Math.round(r.demand) + '/100 · 내 정답률 ' + r.acc + '%' + (r.me ? ' · 올린 학생 ' + r.me.n + '명 중 자리 ' + r.me.pct + '/100' : ''));
+    const svg = '<svg viewBox="-46 0 392 250" role="img" aria-label="' + esc(s.school + ' 영역 비교 레이더 — 값은 옆 표에 있습니다') + '">' +
+      [25, 50, 75, 100].map(v => poly(rows.map(() => v), 'ring')).join('') +
+      rows.map((r, i) => { const [x, y] = pt(i, 100), [lx, ly] = pt(i, 119), anchor = Math.abs(lx - cx) < 8 ? 'middle' : lx > cx ? 'start' : 'end';
+        return '<line class="spoke" x1="' + cx + '" y1="' + cy + '" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '"/><text class="axl" x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" text-anchor="' + anchor + '">' + esc(AX_LABEL[r.axis]) + '</text>'; }).join('') +
+      poly(rows.map(r => r.demand), 'sch') + (meOk ? poly(rows.map(r => r.me.pct), 'me') : '') +
+      rows.map((r, i) => { const [x, y] = pt(i, r.demand); return '<rect class="sch-pt" x="' + (x - 4).toFixed(1) + '" y="' + (y - 4).toFixed(1) + '" width="8" height="8"><title>' + tip(r) + '</title></rect>'; }).join('') +
+      (meOk ? rows.map((r, i) => { const [x, y] = pt(i, r.me.pct); return '<circle class="me-pt" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4.5"><title>' + tip(r) + '</title></circle>'; }).join('') : '') + '</svg>';
+    const ranked = [...rows].sort((a, b) => b.burden - a.burden), top = ranked[0].burden || 1;
+    const table = '<div class="tw"><table><thead><tr><th>부담 순</th><th>학교가 묻는 정도</th><th>내 정답률</th><th>내 자리</th></tr></thead><tbody>' +
+      ranked.map(r => '<tr data-axis="' + esc(r.axis) + '"><td><span class="bar" style="width:' + Math.max(4, Math.round(r.burden / top * 28)) + 'px"></span>' + esc(AX_LABEL[r.axis]) + '</td><td>' + Math.round(r.demand) + '/100</td><td>' + r.acc + '%</td><td>' + (r.me ? r.me.pct + '/100' : '—') + '</td></tr>').join('') + '</tbody></table></div>';
+    return '<div class="vb-axcmp" data-axcmp="' + esc(s.school) + '"><h4>영역 비교 — 이 학교가 많이 묻는 곳 vs 내가 강한 곳 (판정과 별개)</h4>' +
+      '<div class="vb-radar">' + svg + '<div class="vb-legend"><span><i class="sch"></i>이 학교가 묻는 정도 (다른 학교 대비)</span>' + (meOk ? '<span><i></i>내 실력 (올린 학생 ' + nMin + '명 이상 대비)</span>' : '') + '</div></div>' +
+      '<div class="vb-axrank">' + table + '<p class="vb-meta">부담 = 이 학교가 많이 묻는 정도 × 내가 틀리는 비율. 위에 있을수록 이 학교 대비에서 먼저 볼 영역입니다(상대 순서이며 점수가 아닙니다).</p></div>' +
+      '<p class="vb-meta">학교 쪽은 같은 해 학교들 사이 자리값(100 = 그 영역을 가장 많이 묻는 학교, 여러 해 평균), 학생 쪽은 지금 올린 학생들 사이 자리값입니다.' +
+      (meOk ? '' : ' 올린 학생이 영역마다 ' + RADAR_MIN_N + '명이 안 돼 내 실력 선은 그리지 않았습니다.') + ' 영역별 실력으로 다른 학교 점수를 맞혀 봤을 때 전체 실력보다 나아지지 않아, 합격 가능성 판단에는 쓰지 않습니다.</p></div>';
+  };
   const fitTag = v => v.fitInfo ? '<span class="vb-fitnote fit-' + v.fitInfo.fit + '" data-fit="' + v.fitInfo.fit + '" title="' + esc(FIT_TIP) + '">궁합 ' + FIT_KO[v.fitInfo.fit] +
     (v.fitInfo.worst ? ' · ' + esc(v.fitInfo.worst) + ' 부담' : '') + '</span>' : '';
   const card = v => '<button type="button" class="vb-card" data-verdict-open="' + esc(v.school) + '" aria-pressed="' + (VERDICT_OPEN === v.school) + '">' +
@@ -2989,7 +3047,7 @@ function renderSchoolVerdict(){
   const detail = sel ? '<div class="vb-detail" data-verdict-school="' + esc(sel.school) + '" data-verdict-basis="' + sel.basis + '"><div class="vb-dhead"><h3>' + esc(sel.school) + '</h3><span class="vb-pill ' + BAND_CLASS[sel.place.band] + '">' + sel.place.band + '</span><span class="vb-meta">' + BASIS_SHORT[sel.basis] + ' 기준 · 학교 판정 = 학과 판정의 가운데 값</span></div>' +
       '<p class="vb-lead">' + esc(head) + '</p><div class="vb-dstats">' + dstat('학과 판정', sel.place.n + '곳') + dstat('적정·안정 비율', Math.round((sel.counts[1] + sel.counts[2]) / sel.place.n * 100) + '%') +
       (sd.length ? dstat('합격자 하위25% · 학과 가운데', vmid(sd.map(d => d.q1))) + dstat('합격자 중앙 · 학과 가운데', vmid(sd.map(d => d.med)) ?? '—') : '') +
-      (sel.fitInfo ? '<div class="vb-dfit" title="' + esc(FIT_TIP) + '">출제 궁합 (판정과 별개)<b>' + FIT_KO[sel.fitInfo.fit] + '</b>' + (sel.fitInfo.worst ? '가장 걸리는 영역 ' + esc(sel.fitInfo.worst) : '') + '</div>' : '') + '</div><div class="vb-groups">' +
+      (sel.fitInfo ? '<div class="vb-dfit" title="' + esc(FIT_TIP) + '">출제 궁합 (판정과 별개)<b>' + FIT_KO[sel.fitInfo.fit] + '</b>' + (sel.fitInfo.worst ? '가장 걸리는 영역 ' + esc(sel.fitInfo.worst) : '') + '</div>' : '') + '</div>' + (sel.fitInfo ? axCompare(sel) : '') + '<div class="vb-groups">' +
       VERDICTS.map(g => '<div><p class="vb-band ' + BAND_CLASS[g] + '">' + g + ' <span>' + sel.groups[g].length + '곳</span></p>' + (sel.groups[g].length ? chips(g, sel.groups[g]) : '<p class="vb-empty">없음</p>') + '</div>').join('') + '</div>' +
       (sel.notes.length ? '<p class="vb-meta vb-notes-in">' + sel.notes.map(esc).join('<br>') + '</p>' : '') +
       '<details class="vb-why"><summary>판정 근거 보기 (강사용)</summary><div class="tw"><table><thead><tr><th>학과</th><th>판정</th><th>근거</th></tr></thead><tbody>' +
