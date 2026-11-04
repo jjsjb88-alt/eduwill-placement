@@ -152,6 +152,10 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 .vb-card .basis{margin-left:auto;font-size:11.5px;color:var(--dim);white-space:nowrap}
 .vb-card .vb-gap{font-size:12px;font-weight:600;color:var(--hi);background:var(--hi-bg);padding:1px 8px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .vb-card .cnt{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.vb-card .vb-fitnote{display:block;margin-top:4px;font-size:11.5px;color:var(--dim)}
+.vb-card .vb-fitnote::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;border:1.5px solid currentColor}
+.vb-card .vb-fitnote.fit-good::before{background:currentColor}
+.vb-card .vb-fitnote.fit-mid::before{background:linear-gradient(90deg,currentColor 50%,transparent 50%)}
 .vb-card[aria-pressed=true]{background:var(--panel2)}
 .col-hi .vb-card[aria-pressed=true]{border-color:var(--hi);box-shadow:0 0 0 3px var(--hi-bg)}
 .col-mid .vb-card[aria-pressed=true]{border-color:var(--mid);box-shadow:0 0 0 3px var(--mid-bg)}
@@ -2811,7 +2815,10 @@ function schoolVerdicts({attempts=[], scoreRows=[], pctRows=[], studentPct=null,
     else if(studentPct && studentPct.n < 3 && srcs.has('pct')) v.notes.push('학생 모의 백분위가 ' + studentPct.n + '회뿐이라 참고로만 보세요');
   }
   for(const f of fits || []){
-    const v = get(f.stem.split('_')[0]); if(v.basis !== 'none') continue;
+    const v = get(f.stem.split('_')[0]);
+    // 2026-11-04 21단계: 판정과 별개로 모든 학교에 궁합을 붙인다(점수 가감 없음 — 4-19 에서 판정 효과가 없었다). fits 는 부담 낮은 순이라 학교마다 첫 시험지 = 가장 잘 맞는 시험지.
+    if(!v.fitInfo) v.fitInfo = {fit:f.fit, worst:f.worst?.axis || null, stem:f.stem};
+    if(v.basis !== 'none') continue;
     v.basis = 'fit'; v.fit = f.fit; v.notes.push('출제 궁합 ' + ({good:'잘 맞음',mid:'보통',bad:'부담'})[f.fit] + ' — 학생 능력 구성과 이 학교 시험의 맞음 정도이며 합격 가능성이 아닙니다' + (f.worst ? ' · 가장 걸리는 영역 ' + f.worst.axis : ''));
   }
   for(const v of out.values()){ if(v.unknown && v.basis !== 'none') v.notes.push('계열을 확인하지 못한 학과 ' + v.unknown + '곳은 뺐습니다'); delete v.depts; delete v.unknownKeys; }
@@ -2918,10 +2925,15 @@ function renderSchoolVerdict(){
       : '<p class="vb-meta">' + (s === '수학' ? '미입력 · 영어만 비교' : '미입력') + '</p>') + '</div>';
   };
   const dept = d => [d.campus, d.department, d.track && d.track !== '일반' ? d.track : ''].filter(Boolean).join(' · ');
+  // 21단계: 출제 궁합 보조 표시 — 판정(도전·적정·안정)을 바꾸지 않는다. 궁합은 이 학생이 볼 학교들 «안에서»의 3등분 자리다.
+  const FIT_KO = {good:'잘 맞음', mid:'보통', bad:'부담'};
+  const FIT_TIP = '출제 궁합 — 이 학생의 영역별 정답률과 이 학교 시험의 영역 비중을 맞대 본 것입니다(학생이 볼 학교들 안에서 3등분). 합격 가능성이 아니며 판정에 더하지 않습니다.';
+  const fitTag = v => v.fitInfo ? '<span class="vb-fitnote fit-' + v.fitInfo.fit + '" data-fit="' + v.fitInfo.fit + '" title="' + esc(FIT_TIP) + '">궁합 ' + FIT_KO[v.fitInfo.fit] +
+    (v.fitInfo.worst ? ' · ' + esc(v.fitInfo.worst) + ' 부담' : '') + '</span>' : '';
   const card = v => '<button type="button" class="vb-card" data-verdict-open="' + esc(v.school) + '" aria-pressed="' + (VERDICT_OPEN === v.school) + '">' +
     '<span class="top"><b>' + esc(v.school) + '</b>' + (v.place.band === '도전' && gapText(v) ? '<span class="vb-gap" title="학과별 적정 기준(합격 최저 · 합격자 백분위 하위25%)까지 모자란 점수의 가운데 값">' + gapText(v) + '</span>' : '') +
     '<span class="basis">' + BASIS_SHORT[v.basis] + '</span></span>' + distBar(v.counts) +
-    '<span class="cnt">' + VERDICTS.map((g, i) => v.counts[i] ? g + ' ' + v.counts[i] : '').filter(Boolean).join(' · ') + ' · 학과 ' + v.place.n + '곳</span></button>';
+    '<span class="cnt">' + VERDICTS.map((g, i) => v.counts[i] ? g + ' ' + v.counts[i] : '').filter(Boolean).join(' · ') + ' · 학과 ' + v.place.n + '곳</span>' + fitTag(v) + '</button>';
   const col = g => {
     const items = inBand(g), cls = BAND_CLASS[g], rest = items.slice(VB_CARDS);
     return '<div class="vb-col col-' + cls.slice(5) + '" data-band="' + g + '"><div class="vb-colhead"><h3 class="' + cls + '">' + bandIcon(g) + g +
@@ -2976,7 +2988,8 @@ function renderSchoolVerdict(){
   const dstat = (l, v) => '<div>' + l + '<b>' + v + '</b></div>';
   const detail = sel ? '<div class="vb-detail" data-verdict-school="' + esc(sel.school) + '" data-verdict-basis="' + sel.basis + '"><div class="vb-dhead"><h3>' + esc(sel.school) + '</h3><span class="vb-pill ' + BAND_CLASS[sel.place.band] + '">' + sel.place.band + '</span><span class="vb-meta">' + BASIS_SHORT[sel.basis] + ' 기준 · 학교 판정 = 학과 판정의 가운데 값</span></div>' +
       '<p class="vb-lead">' + esc(head) + '</p><div class="vb-dstats">' + dstat('학과 판정', sel.place.n + '곳') + dstat('적정·안정 비율', Math.round((sel.counts[1] + sel.counts[2]) / sel.place.n * 100) + '%') +
-      (sd.length ? dstat('합격자 하위25% · 학과 가운데', vmid(sd.map(d => d.q1))) + dstat('합격자 중앙 · 학과 가운데', vmid(sd.map(d => d.med)) ?? '—') : '') + '</div><div class="vb-groups">' +
+      (sd.length ? dstat('합격자 하위25% · 학과 가운데', vmid(sd.map(d => d.q1))) + dstat('합격자 중앙 · 학과 가운데', vmid(sd.map(d => d.med)) ?? '—') : '') +
+      (sel.fitInfo ? '<div class="vb-dfit" title="' + esc(FIT_TIP) + '">출제 궁합 (판정과 별개)<b>' + FIT_KO[sel.fitInfo.fit] + '</b>' + (sel.fitInfo.worst ? '가장 걸리는 영역 ' + esc(sel.fitInfo.worst) : '') + '</div>' : '') + '</div><div class="vb-groups">' +
       VERDICTS.map(g => '<div><p class="vb-band ' + BAND_CLASS[g] + '">' + g + ' <span>' + sel.groups[g].length + '곳</span></p>' + (sel.groups[g].length ? chips(g, sel.groups[g]) : '<p class="vb-empty">없음</p>') + '</div>').join('') + '</div>' +
       (sel.notes.length ? '<p class="vb-meta vb-notes-in">' + sel.notes.map(esc).join('<br>') + '</p>' : '') +
       '<details class="vb-why"><summary>판정 근거 보기 (강사용)</summary><div class="tw"><table><thead><tr><th>학과</th><th>판정</th><th>근거</th></tr></thead><tbody>' +
