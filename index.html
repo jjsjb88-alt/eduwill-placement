@@ -205,9 +205,14 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 @media(max-width:1279px){.vb-head{flex-basis:100%}}
 @media(max-width:760px){.vb-bands{--c1:84px;--c3:56px}.vb-head,.vb-detail,.vb-fit{padding:16px}}
 /* 22단계: 선택 학교 영역 비교 — 레이더 + 부담 순서표 (판정과 별개) */
-.vb-axcmp{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px 24px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);align-items:start}
-.vb-axcmp h4{grid-column:1/-1;margin:0;font-size:14px}
-.vb-axcmp .vb-meta{grid-column:1/-1;margin:0}
+/* 2026-11-06 24단계: 2단 격자는 표 칸이 표 최소 폭(약 294px)보다 좁아지는 폭(1150~1310px·761~790px)에서 표가 카드 밖으로 넘쳤다.
+   줄바꿈 flex 로 바꿔 표 칸이 300px 를 못 받으면 레이더 아래로 내려간다. 그래도 좁으면 표 안에서 가로 스크롤. */
+.vb-axcmp{display:flex;flex-wrap:wrap;gap:16px 24px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);align-items:flex-start}
+.vb-axcmp h4{flex:1 1 100%;margin:0;font-size:14px}
+.vb-axcmp>.vb-meta{flex:1 1 100%;margin:0}
+.vb-axcmp .vb-meta{margin:0}
+.vb-axcmp .vb-radar{flex:0 1 320px;min-width:0}
+.vb-axcmp .vb-axrank{flex:1 1 300px;min-width:0;overflow-x:auto}
 .vb-radar svg{width:100%;height:auto;display:block}
 .vb-radar .ring{fill:none;stroke:var(--line)}
 .vb-radar .spoke{stroke:var(--line)}
@@ -224,7 +229,7 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 .vb-axrank th{font-weight:600;color:var(--dim);font-size:11.5px;white-space:normal;vertical-align:bottom}
 .vb-axrank .bar{display:inline-block;height:6px;border-radius:3px;background:var(--line2);vertical-align:middle;margin-right:6px}
 .vb-axrank tr:first-child td{font-weight:600}
-@media(max-width:760px){.vb-axcmp{grid-template-columns:minmax(0,1fr)}.vb-radar{max-width:320px}}
+@media(max-width:760px){.vb-axcmp .vb-radar{flex-basis:100%;max-width:320px}}
 @media(max-width:600px){.vb-kpi .k-num{font-size:28px}.vb-range,.vb-sum,.vb-trend,.vb-kpi,.vb-col{padding:16px}}
 @media(max-width:380px){.vb-bands{--c1:72px;--c3:0px}.vb-bandrow .vb-pill{display:none}}
 @media(forced-colors:active){.vb-card[aria-pressed=true]{outline:2px solid Highlight}.vb-dist,.vb-track,.vb-chip,.vb-pill,.vb-tag{border:1px solid CanvasText}}
