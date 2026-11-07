@@ -197,6 +197,15 @@ label.ck{font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
 .vb-why td{white-space:normal}
 .vb-why td:first-child,.vb-why td:nth-child(2){white-space:nowrap}
 .vb-notes-in{margin:12px 0 0}
+.vb-apply{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.vb-apply label{font-size:13px;font-weight:600}
+.vb-apply select{flex:1 1 220px;min-width:0}
+#applyCard h2{margin:0 0 6px;font-size:20px}
+#applyList{margin:12px 0}
+#applyList .tw{overflow-x:auto}
+#applyList td select,#applyList td input{font-size:13px;padding:4px 6px}
+#applyList td input{width:9em;max-width:100%}
+.apply-io{margin:0}
 .vb-fit{padding:16px 22px}
 .vb-fit h3{margin:0;font-size:15px}
 .vb-fit .vb-chips{margin-top:10px}
@@ -389,6 +398,14 @@ html[data-theme=dark] .miss{color:#6B7690}
   <section class="vb-section" aria-labelledby="verdictTitle">
     <h2 id="verdictTitle">학교별 결과</h2>
     <div id="schoolVerdict"></div>
+  </section>
+
+  <section class="card" id="applyCard" aria-labelledby="applyTitle">
+    <h2 id="applyTitle">지원 현황</h2>
+    <p class="vb-meta">학교 상세에서 「지원 목록에 담기」를 누르면 그때의 백분위·판정과 함께 여기에 쌓입니다. 이 PC의 이 브라우저에만 저장되므로, 다른 PC로 옮기거나 백업하려면 엑셀로 저장하세요.</p>
+    <div id="applyList"></div>
+    <div class="rowline apply-io"><button type="button" id="applySave">엑셀로 저장</button><label for="applyLoad">엑셀 불러오기</label><input type="file" id="applyLoad" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div>
+    <p id="applyMessage" role="status" aria-live="polite"></p>
   </section>
 
   <details id="backData"><summary>백데이터·검수 (강사용) — 상담 요약·후보 비교·시험지 확인·학생 연결·근거 표 · 문제 있을 때만 펼치기</summary>
@@ -2949,6 +2966,7 @@ function renderSchoolVerdict(){
   if(!box) return;
   const calib = calibrationTable();
   renderSideStats(calib);
+  renderApplications();
   if(!key || !ROSTER.has(key)){ box.innerHTML = '<p class="vb-empty">기출 OMR을 올리고 학생을 찾으면 학교별 결과가 나옵니다.</p>'; return; }
   if(VERDICT_STUDENT !== key){ VERDICT_STUDENT = key; VERDICT_OPEN = ''; }
   const sf = studentField(key), field = sf.field, real = studentPercentile(key), ma = manualPercentile(key, '수학');
@@ -3076,6 +3094,10 @@ function renderSchoolVerdict(){
       (sel.fitInfo ? '<div class="vb-dfit" title="' + esc(FIT_TIP) + '">출제 궁합 (판정과 별개)<b>' + FIT_KO[sel.fitInfo.fit] + '</b>' + (sel.fitInfo.worst ? '가장 걸리는 영역 ' + esc(sel.fitInfo.worst) : '') + '</div>' : '') + '</div>' + (sel.fitInfo ? axCompare(sel) : '') + '<div class="vb-groups">' +
       VERDICTS.map(g => '<div><p class="vb-band ' + BAND_CLASS[g] + '">' + g + ' <span>' + sel.groups[g].length + '곳</span></p>' + (sel.groups[g].length ? chips(g, sel.groups[g]) : '<p class="vb-empty">없음</p>') + '</div>').join('') + '</div>' +
       (sel.notes.length ? '<p class="vb-meta vb-notes-in">' + sel.notes.map(esc).join('<br>') + '</p>' : '') +
+      /* 25단계(2026-11-07 사용자 결정 «브라우저+엑셀»): 지원할 학과를 담으면 그때의 백분위·판정과 함께 지원 현황에 저장한다. */
+      '<div class="vb-apply"><label for="applyDept">지원할 학과</label><select id="applyDept">' +
+      VERDICTS.flatMap(g => sel.groups[g].map((d, i) => '<option value="' + g + ':' + i + '">' + esc(dept(d)) + ' · ' + g + '</option>')).join('') +
+      '</select><button type="button" class="pri" id="applyAdd">지원 목록에 담기</button></div>' +
       '<details class="vb-why"><summary>판정 근거 보기 (강사용)</summary><div class="tw"><table><thead><tr><th>학과</th><th>판정</th><th>근거</th></tr></thead><tbody>' +
       VERDICTS.flatMap(g => sel.groups[g].map(d => '<tr><td>' + esc(dept(d)) + '</td><td class="' + BAND_CLASS[g] + '"><b>' + g + '</b></td><td>' + esc(d.detail) + '</td></tr>')).join('') + '</tbody></table></div></details></div>' : '';
   // 기출 정답률(핸드오프 §8 결정 4): 회차마다 학교·연도가 달라 선으로 잇지 않고 점만 찍는다.
@@ -3103,6 +3125,94 @@ function renderSchoolVerdict(){
     '<li>합격자 백분위는 2015~2022년 합격자를 합친 값입니다. 최근 경향은 따로 확인하세요.</li></ul></div>';
   box.querySelectorAll('[data-verdict-open]').forEach(b => b.onclick = () => { VERDICT_OPEN = b.dataset.verdictOpen; renderSchoolVerdict(); box.querySelector('.vb-detail')?.scrollIntoView({block:'nearest'}); });
   box.querySelectorAll('[data-student-field]').forEach(b => b.onclick = () => { ROSTER.get(key).field = b.dataset.studentField; VERDICT_OPEN = ''; renderSchoolVerdict(); box.querySelector('[data-student-field="' + b.dataset.studentField + '"]')?.focus(); });
+  const add = box.querySelector('#applyAdd');
+  if(add && sel) add.onclick = () => {
+    const [g, i] = $('applyDept').value.split(':'), d = sel.groups[g]?.[Number(i)];
+    if(d) addApplication(key, sel, d, g, en);
+  };
+}
+/* ── 25단계: 지원 현황 기록(브라우저 저장 + 엑셀 저장·불러오기) ─────────────────────────────
+   2026-11-07 사용자 결정: 저장은 이 PC 브라우저(localStorage) + 엑셀. 공유 서버는 쓰지 않는다(학생 이름이 PC 밖으로 나가지 않게).
+   엑셀 앞 10열은 양식/지원결과_수집양식.xlsx 「지원」 시트와 같다 — 분원이 그 양식을 채워 보내도 그대로 불러온다.
+   상담 당시 백분위·판정을 함께 남기는 이유: 판정 칸별 실제 합격률을 재려면 «떨어진 지원»까지 판정과 짝지어야 한다(인수인계 4-30). */
+const APPLY_KIND = 'placement-applications';
+const APPLY_COLS = ['분원','이름','대학','학과','전형','캠퍼스','필기 결과','최종 결과','등록','비고','뒷자리','담은 날','당시 학과 판정','당시 학교 판정','당시 영어 백분위','백분위 출처'];
+const APPLY_FIELDS = ['branch','name','school','department','track','campus','written','final','enrolled','note','tail','saved','dept_band','school_band','pct','pct_source'];
+const APPLY_PICK = {written:['통과','탈락','해당 없음'], final:['합격','추가합격','불합격','미응시','결과 모름'], enrolled:['예']};
+let APPLY = (() => { try{ const d = JSON.parse(localStorage.getItem(APPLY_KIND) || 'null'); return d?.kind === APPLY_KIND && Array.isArray(d.records) ? d.records : []; }catch{ return []; } })();
+/* 같은 학생 = 이름이 같고, 뒷자리는 양쪽에 다 있을 때만 비교한다(수집 양식에는 뒷자리 열이 없다). */
+const applyMine = (r, st) => r.name === st.name && (!r.tail || !st.tail || r.tail === st.tail);
+const applySame = (a, b) => applyMine(a, b) && ['school','campus','department','track'].every(f => (a[f] || '') === (b[f] || ''));
+function applyMessage(text){ $('applyMessage').textContent = text; }
+function storeApplications(){
+  try{ localStorage.setItem(APPLY_KIND, JSON.stringify({kind:APPLY_KIND, version:1, records:APPLY})); return true; }
+  catch{ applyMessage('이 브라우저에 저장하지 못했습니다(저장 공간이 막혀 있음). 지금 바로 «엑셀로 저장»을 눌러 두세요.'); return false; }
+}
+function addApplication(key, sel, d, g, en){
+  const st = ROSTER.get(key);
+  const rec = {branch:'', name:st.name, tail:st.tail || '', school:sel.school, campus:d.campus || '', department:d.department || '', track:d.track || '',
+    written:'', final:'', enrolled:'', note:'', saved:new Date().toISOString().slice(0, 10), dept_band:g, school_band:sel.place.band,
+    pct:Number.isFinite(en?.val) ? Math.round(en.val * 10) / 10 : '', pct_source:en?.estimated ? '기출 환산 추정' : en ? '학원 모의고사' : ''};
+  if(APPLY.some(r => applySame(r, rec))){ applyMessage('이미 담겨 있습니다 — ' + sel.school + ' ' + rec.department + '.'); return; }
+  APPLY.push(rec);
+  if(storeApplications()) applyMessage('담았습니다 — ' + sel.school + ' ' + rec.department + ' (' + g + ').');
+  renderApplications();
+}
+function renderApplications(){
+  const box = $('applyList'), key = $('pstu').value;
+  if(!box) return;
+  const st = key && ROSTER.get(key), mine = st ? APPLY.map((r, i) => [r, i]).filter(([r]) => applyMine(r, st)) : [];
+  const people = new Set(APPLY.map(r => r.name + '|' + (r.tail || ''))).size;
+  const pick = (i, f, v) => '<select data-apply-row="' + i + '" data-apply-field="' + f + '" aria-label="' + {written:'필기 결과', final:'최종 결과', enrolled:'등록'}[f] + '"><option value="">—</option>' +
+    APPLY_PICK[f].map(o => '<option' + (o === v ? ' selected' : '') + '>' + o + '</option>').join('') + (v && !APPLY_PICK[f].includes(v) ? '<option selected>' + esc(v) + '</option>' : '') + '</select>';
+  box.innerHTML = '<p class="vb-meta">이 브라우저에 저장된 지원 ' + APPLY.length + '건 · 학생 ' + people + '명</p>' +
+    (!st ? '<p class="vb-empty">학생을 고르면 그 학생의 지원 목록이 나옵니다.</p>'
+      : !mine.length ? '<p class="vb-empty">' + esc(studentLabel(key)) + ' — 아직 담은 지원이 없습니다. 위 학교 상세에서 학과를 골라 담으세요.</p>'
+      : '<p><b>' + esc(studentLabel(key)) + '</b> · 지원 ' + mine.length + '곳</p><div class="tw"><table><thead><tr><th>대학</th><th>학과</th><th>담은 날</th><th>당시 판정</th><th>당시 백분위</th><th>필기 결과</th><th>최종 결과</th><th>등록</th><th>비고</th><th></th></tr></thead><tbody>' +
+        mine.map(([r, i]) => '<tr data-apply="' + i + '"><td>' + esc(r.school) + '</td><td>' + esc([r.campus, r.department, r.track && r.track !== '일반' ? r.track : ''].filter(Boolean).join(' · ')) + '</td><td>' + esc(r.saved) + '</td>' +
+          '<td>' + (r.dept_band ? '<span class="' + (BAND_CLASS[r.dept_band] || '') + '">' + esc(r.dept_band) + '</span>' : '—') + (r.school_band && r.school_band !== r.dept_band ? '<small> (학교 ' + esc(r.school_band) + ')</small>' : '') + '</td>' +
+          '<td>' + (r.pct !== '' && r.pct != null ? esc(r.pct) + (r.pct_source === '기출 환산 추정' ? '<small> 추정</small>' : '') : '—') + '</td>' +
+          '<td>' + pick(i, 'written', r.written) + '</td><td>' + pick(i, 'final', r.final) + '</td><td>' + pick(i, 'enrolled', r.enrolled) + '</td>' +
+          '<td><input data-apply-row="' + i + '" data-apply-field="note" value="' + esc(r.note) + '" aria-label="비고"></td><td><button type="button" class="mini" data-apply-del="' + i + '">빼기</button></td></tr>').join('') +
+        '</tbody></table></div>');
+  box.querySelectorAll('[data-apply-field]').forEach(el => el.onchange = () => { APPLY[Number(el.dataset.applyRow)][el.dataset.applyField] = el.value.trim(); if(storeApplications()) applyMessage('저장했습니다.'); });
+  box.querySelectorAll('[data-apply-del]').forEach(b => b.onclick = () => { const r = APPLY[Number(b.dataset.applyDel)];
+    if(!confirm(r.school + ' ' + r.department + ' 지원을 목록에서 뺄까요?')) return;
+    APPLY.splice(Number(b.dataset.applyDel), 1); if(storeApplications()) applyMessage('뺐습니다 — ' + r.school + ' ' + r.department + '.'); renderApplications(); });
+}
+function saveApplicationsXlsx(){
+  if(!APPLY.length){ applyMessage('저장할 지원이 없습니다. 학교 상세에서 먼저 담으세요.'); return; }
+  const ws = XLSX.utils.aoa_to_sheet([APPLY_COLS, ...APPLY.map(r => APPLY_FIELDS.map(f => r[f] ?? ''))]);
+  ws['!cols'] = APPLY_COLS.map(c => ({wch:['대학','학과','비고'].includes(c) ? 22 : 11}));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '지원');
+  download('지원현황_' + new Date().toISOString().slice(0, 10) + '.xlsx', XLSX.write(wb, {bookType:'xlsx', type:'array'}), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  applyMessage('엑셀로 저장했습니다 — 지원 ' + APPLY.length + '건.');
+}
+function parseApplicationsXlsx(buf){
+  let wb;
+  try{ wb = XLSX.read(new Uint8Array(buf), {type:'array'}); }catch{ throw new Error('엑셀 파일이 아닙니다'); }
+  const ws = wb.Sheets['지원'] || wb.Sheets[wb.SheetNames[0]];
+  const rows = ws ? XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''}) : [];
+  const h = rows.findIndex(r => r.includes('이름') && r.includes('대학'));
+  if(h < 0) throw new Error('「이름」·「대학」 열이 있는 지원 현황 엑셀이 아닙니다');
+  const col = Object.fromEntries(APPLY_COLS.map((c, j) => [APPLY_FIELDS[j], rows[h].indexOf(c)]));
+  return rows.slice(h + 1).map(r => Object.fromEntries(APPLY_FIELDS.map(f => [f, col[f] >= 0 ? String(r[col[f]] ?? '').trim() : ''])))
+    .filter(r => r.name && r.school && !r.note.startsWith('가상 예시'));   // 수집 양식의 예시 줄은 건너뛴다
+}
+async function loadApplicationsXlsx(file){
+  let got;
+  try{ got = parseApplicationsXlsx(await file.arrayBuffer()); }
+  catch(e){ applyMessage('불러오지 못했습니다 — ' + e.message + '. 저장된 지원은 그대로입니다.'); return; }
+  let added = 0, merged = 0;
+  for(const r of got){
+    r.tail = r.tail ? r.tail.replace(/\D/g, '').slice(-4) : '';
+    const at = APPLY.findIndex(x => applySame(x, r));
+    if(at < 0){ APPLY.push(r); added++; continue; }
+    for(const f of APPLY_FIELDS) if(r[f] !== '' && r[f] !== APPLY[at][f]) APPLY[at][f] = r[f];   // 엑셀에 적힌 값이 있으면 그쪽을 따른다(결과는 대개 나중에 엑셀로 채운다)
+    merged++;
+  }
+  if(storeApplications()) applyMessage('불러왔습니다 — 새로 ' + added + '건 · 같은 지원 합침 ' + merged + '건 · 지금 ' + APPLY.length + '건.');
+  renderApplications();
 }
 function renderPlacement(){
   renderSchoolVerdict();
@@ -3831,6 +3941,9 @@ $('saveall').onclick = saveAllReports;
 $('calibSave').onclick = saveCalibration;
 $('calibLoad').onchange = e => { const f = e.target.files?.[0]; if(f) loadCalibration(f); e.target.value = ''; };
 $('calibClear').onclick = () => { CALIB_SAVED = null; calibMessage('불러온 환산표를 지웠습니다.'); renderSchoolVerdict(); };
+$('applySave').onclick = saveApplicationsXlsx;
+$('applyLoad').onchange = e => { const f = e.target.files?.[0]; if(f) loadApplicationsXlsx(f); e.target.value = ''; };
+renderApplications();
 $('pstu').onchange = () => {fieldState('pstu','s3Message',false);renderPlacement();renderL2();renderManualPercentile();};
 $('pyear').onchange = ()=>{renderPlacement();renderCandidates();};
 $('admSchool').onchange = () => { $('admYear').value=''; renderAdmissionReference(); };
