@@ -1,0 +1,9 @@
+# Internal counseling files belong outside this public repository.
+*.xlsx
+*.xls
+*.xlsm
+review-data.json
+배치상담_2026_상담자료.json
+배치상담_2026_학교학과_상담.html
+delivery/
+qa/
