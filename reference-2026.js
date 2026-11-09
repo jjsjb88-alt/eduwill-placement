@@ -31,7 +31,7 @@ function validate(input) {
 function setOptions(id, values, first) {
   $(id).innerHTML=`<option value="">${esc(first)}</option>`+[...new Set(values.filter(Boolean))].map(v=>`<option>${esc(v)}</option>`).join('');
 }
-function load(input, filename='검수 자료') {
+function load(input, filename='검수 자료', automatic=false) {
   const next=validate(input);
   data=next; schoolMap=new Map(data.schools.map(s=>[s.id,s])); recordMap=new Map(data.records.map(r=>[r.id,r]));
   schoolId=''; compared.clear(); favorites.clear(); page=0;
@@ -47,7 +47,7 @@ function load(input, filename='검수 자료') {
   $('statRows').textContent=fmt(data.records.length); $('statScores').textContent=fmt(data.records.filter(hasScore).length);
   $('statFlags').textContent=fmt(data.records.filter(r=>r.flags.length).length);
   const url=safeSource(data.sourceUrl); $('masterLink').href=url||'#'; $('masterLink').hidden=!url;
-  $('loadStatus').classList.remove('error'); $('loadStatus').textContent=`${filename} · 불러오기 완료 · 자료는 이 탭에서 조회하며 새로고침하면 다시 불러와야 합니다.`;
+  $('loadStatus').classList.remove('error'); $('loadStatus').textContent=automatic?`${data.version.replaceAll('-','.')} 검수 자료 · ${fmt(data.records.length)}개 항목을 불러왔습니다.`:`${filename} · 불러오기 완료 · 자료는 이 탭에서 조회하며 새로고침하면 다시 불러와야 합니다.`;
   renderSchools(); render(); renderTray();
 }
 async function readFile(file) {
@@ -164,5 +164,5 @@ $('closeDetail').onclick=()=>closeDialog('detailDialog'); $('closeCompare').oncl
 ['detailDialog','compareDialog'].forEach(id=>$(id).addEventListener('click',e=>{if(e.target===$(id)){const r=$(id).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog(id);}}));
 // Only the delivered local HTML embeds this element. The public viewer ships without data.
 const bundled=document.getElementById('localReferenceData');
-if(bundled) { try{load(JSON.parse(bundled.textContent),'2026 검수본');}catch(e){$('loadStatus').textContent=e.message;$('loadStatus').classList.add('error');} }
+if(bundled) { try{load(JSON.parse(bundled.textContent),'2026 검수본',true);}catch(e){$('loadStatus').textContent=e.message;$('loadStatus').classList.add('error');} }
 })();
