@@ -15,7 +15,7 @@ async function envelope(){
   return envelopePromise;
 }
 async function derive(password,payload){
-  const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+  const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(window.keyboardPassword(password)),'PBKDF2',false,['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:bytes(payload.salt),iterations:payload.iterations,hash:'SHA-256'},material,256));
 }
 async function decrypt(keyBytes,payload){
