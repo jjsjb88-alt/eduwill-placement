@@ -1,3 +1,5 @@
+> 2026-11-09 오후 변경(사용자 결정): 상담 콘솔 `index.html` 은 **비밀번호 없이** 평문으로 공개한다(exam-qa 27단계 · 모집인원 연도 밀림 수정본). `app.enc.json` 은 쓰지 않아 삭제했다. 학교·학과 자료 `reference-2026.html` 은 비밀번호 잠금을 그대로 유지한다. 상담 콘솔을 다시 잠그려면 `counseling-app/private-source/app.html` 을 최신 빌드로 바꾼 뒤 `build-password.cjs` 로 두 암호문을 함께 다시 만든다.
+
 > 2026-11-09 후속 수정: 상담 화면의 “공동모집·최대 인원은 합산하지 않습니다.” 한 문장 삭제. 모집인원·계산·원본 데이터 변경 없음. 기존 비밀번호 유지, reference.enc.json만 재암호화. 로컬 DOM 검증 결과는 비공개 _maintenance/remove-quota-note-20261109/ui-verification.json 참조.
 
 # 연도별 성적·학교별 캠퍼스 · 2026-11-09
