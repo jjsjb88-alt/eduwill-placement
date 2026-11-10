@@ -128,10 +128,23 @@ function quotaHTML(row) {
   const value=isNum?`${fmt(row.quota)}명`:row.quota==='-'?'미모집':row.quota==='?'?'확인 필요':row.quota||'원문 공란';
   return `<span class="quota-kind ${/공동|최대/.test(row.quotaKind)?'shared':''}">${esc(row.quotaKind)}</span><div class="quota-value">${esc(value)}</div>`;
 }
+function summaryScoreHTML(row) {
+  const metric=row.metrics[0],year=row.year||2026;
+  if(!metric)return `<div class="summary-score" data-year="${year}"><small class="summary-year">${year}</small>${scoreHTML(row)}</div>`;
+  const value=metric.value===null?(metric.raw==='-'||!metric.raw?'미확보':metric.raw):fmt(metric.value);
+  return `<div class="summary-score" data-year="${year}"><small class="summary-year">${year}</small><span class="score-value ${metric.value===null?'missing':''}">${esc(value)}</span><small class="score-metric">${esc(metric.label)}</small>${row.yearTitle&&row.yearTitle!==String(year)?`<small class="summary-scale">${esc(row.yearTitle)}</small>`:''}${row.metrics.length>1?`<button class="metric-more" data-detail="${esc(row.id)}">전체 ${row.metrics.length}개 지표 보기 ↗</button>`:''}</div>`;
+}
 function statusHTML(row) {
   return `<span class="badge ${row.flags.length?'warn':hasScore(row)?'available':''}">${esc(row.status)}</span>`;
 }
 function setupQuickFilters() {
+  document.querySelector('.page-heading h1').textContent='학교·학과 성적 조회';
+  document.querySelector('.page-heading p').textContent='학과를 찾고, 상세에서 연도별 성적과 모든 지표를 확인하세요.';
+  const advanced=document.createElement('details');
+  advanced.className='advanced-filters';
+  advanced.innerHTML='<summary>상세 필터 <span>학년도 · 캠퍼스 · 자료 상태</span></summary>';
+  document.querySelector('.filters').append(advanced);
+  advanced.append(document.querySelector('.filter-row'));
   const bar=document.createElement('div');
   bar.className='quick-filters';
   bar.innerHTML=[['group','계열',['','인문','자연']],['track','전형',['','일반','학사']]].map(([id,label,values])=>`<div class="quick-filter-group" role="group" aria-label="${label} 빠른 선택"><b>${label}</b><div>${values.map(value=>`<button type="button" data-filter="${id}" data-value="${value}" aria-pressed="${!value}">${value||'전체'}</button>`).join('')}</div></div>`).join('');
@@ -150,8 +163,11 @@ function matchesTrack(row) {
 function render() {
   if(!data) return;
   document.querySelectorAll('.quick-filters [data-filter]').forEach(button=>button.setAttribute('aria-pressed',String($(button.dataset.filter).value===button.dataset.value)));
+  const selectedFilters=['year','track','group','campus','status'].filter(id=>$(id).value);
+  document.querySelector('.advanced-filters summary span').textContent=selectedFilters.length?selectedFilters.map(id=>$(id).selectedOptions[0].textContent).join(' · '):'학년도 · 캠퍼스 · 자료 상태';
   renderYearImages();
   $('quotaHeader').textContent=($('year').value||'2026')+' 인원';
+  document.querySelector('.dept-table thead th:nth-child(5)').textContent=($('year').value||'2026')+' 성적 · 지표';
   const words=$('query').value.trim().split(/\s+/).filter(Boolean).map(norm);
   filtered=activeRows().filter(r=>(!schoolId||r.school===Number(schoolId))&&matchesTrack(r)&&(!$('group').value||r.category===$('group').value)&&(!$('campus').value||campusValue(r)===$('campus').value)&&(!$('status').value||r.status===$('status').value)&&(!$('favoriteOnly').checked||favorites.has(r.id))&&words.every(w=>norm(schoolName(r)+' '+r.department+' '+r.type+' '+r.group+' '+campusName(r)).includes(w)));
   if($('sort').value==='name') filtered.sort((a,b)=>a.department.localeCompare(b.department,'ko'));
@@ -161,7 +177,7 @@ function render() {
   $('resultCount').textContent=`${fmt(filtered.length)}개 모집단위·전형`;
   $('schoolNote').hidden=!school;
   if(school) $('schoolNote').innerHTML=`<details><summary>이 학교의 성적·모집 기준 확인</summary><p>${esc(school.note||'2026 검수본의 1차 합격자 평균점수와 모집인원입니다. 원문에서 전형·시험 기준을 함께 확인하세요.')}</p><a href="${esc(safeSource(school.url))}" target="_blank" rel="noopener">해당 학교 정본 열기 ↗</a></details>`;
-  $('rows').innerHTML=filtered.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE).map(r=>`<tr data-row="${esc(r.id)}"><td><div class="controls-cell"><button class="star-button" data-star="${esc(r.id)}" aria-label="${esc(r.department)} 관심 학과" aria-pressed="${favorites.has(r.id)}">${favorites.has(r.id)?'★':'☆'}</button><input class="compare-check" type="checkbox" data-compare="${esc(r.id)}" aria-label="${esc(schoolName(r)+' '+r.type+' '+r.department)} 비교 선택" ${compared.has(r.id)?'checked':''}></div></td><td><div class="school-label">${esc(schoolName(r))}${campusName(r)?' · '+esc(campusName(r)):''}</div><button class="dept-name" data-detail="${esc(r.id)}">${esc(r.department)}</button></td><td><span class="type-label">${esc(r.type)}</span><span class="sub-label">${esc(r.group||'원문 계열 미구분')}</span></td><td>${quotaHTML(r)}</td><td>${annualHTML(r)}</td><td>${statusHTML(r)}</td><td><button class="detail-button" data-detail="${esc(r.id)}" aria-label="${esc(r.department)} 상세 보기">상세 ↗</button></td></tr>`).join('');
+  $('rows').innerHTML=filtered.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE).map(r=>`<tr data-row="${esc(r.id)}"><td><div class="controls-cell"><button class="star-button" data-star="${esc(r.id)}" aria-label="${esc(r.department)} 관심 학과" aria-pressed="${favorites.has(r.id)}">${favorites.has(r.id)?'★':'☆'}</button><input class="compare-check" type="checkbox" data-compare="${esc(r.id)}" aria-label="${esc(schoolName(r)+' '+r.type+' '+r.department)} 비교 선택" ${compared.has(r.id)?'checked':''}></div></td><td><div class="school-label">${esc(schoolName(r))}${campusName(r)?' · '+esc(campusName(r)):''}</div><button class="dept-name" data-detail="${esc(r.id)}">${esc(r.department)}</button></td><td><span class="type-label">${esc(r.type)}</span><span class="sub-label">${esc(r.group||'원문 계열 미구분')}</span></td><td>${quotaHTML(r)}</td><td>${summaryScoreHTML(r)}</td><td>${statusHTML(r)}</td><td><button class="detail-button" data-detail="${esc(r.id)}" aria-label="${esc(r.department)} 상세 보기">연도별 ↗</button></td></tr>`).join('');
   $('empty').hidden=filtered.length>0||!$('yearImages').hidden;
   $('pageInfo').textContent=filtered.length?`${fmt(page*PAGE_SIZE+1)}–${fmt(Math.min((page+1)*PAGE_SIZE,filtered.length))} / ${fmt(filtered.length)} · ${page+1} / ${pages}페이지`:'조회 결과 0개';
   $('prevPage').disabled=page===0; $('nextPage').disabled=page>=pages-1;
