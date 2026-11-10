@@ -29,11 +29,12 @@ function enter(html,key,payload){
   if(!/^<!doctype html>/i.test(html.trimStart()))throw Error('자료 형식을 확인할 수 없습니다.');
   try{sessionStorage.setItem(SESSION,JSON.stringify({salt:payload.salt,key:base64(key)}));}catch{}
   $('sharedPassword').value='';
-  // Reference envelopes contain an older inline stylesheet. Load the current
-  // presentation after it without changing the encrypted data or session key.
+  // Reference envelopes bundle older assets. Use the current viewer assets
+  // without changing the encrypted data or session key.
   if(document.body.dataset.encrypted==='reference.enc.json'&&!$('sealedPayload')){
     html=html.replace(/<style>[\s\S]*?<\/style>/,'')
-      .replace('</head>','<link rel="stylesheet" href="reference-2026.css?v=readability-20261110"></head>');
+      .replace('</head>','<link rel="stylesheet" href="reference-2026.css?v=toggles-20261110"></head>')
+      .replace(/<script>\/\* School\/department reference viewer\.[\s\S]*?<\/script>/,'<script src="reference-2026.js?v=toggles-20261110"></script>');
   }
   document.open();document.write(html);document.close();
 }

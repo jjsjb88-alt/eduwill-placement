@@ -5,7 +5,7 @@ const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = value => String(value ?? '').replace(/\s+/g,'').toLocaleLowerCase('ko');
 const fmt = value => Number(value).toLocaleString('ko-KR',{maximumFractionDigits:2});
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 10;
 let data = null, schoolId = '', page = 0, favorites = new Set(), compared = new Set(), lastFocus = null, toastTimer;
 let schoolMap = new Map(), recordMap = new Map(), filtered = [];
 const hasScore = row => row.metrics.some(m => typeof m.value === 'number' && Number.isFinite(m.value));
@@ -131,12 +131,29 @@ function quotaHTML(row) {
 function statusHTML(row) {
   return `<span class="badge ${row.flags.length?'warn':hasScore(row)?'available':''}">${esc(row.status)}</span>`;
 }
+function setupQuickFilters() {
+  const bar=document.createElement('div');
+  bar.className='quick-filters';
+  bar.innerHTML=[['group','계열',['','인문','자연']],['track','전형',['','일반','학사']]].map(([id,label,values])=>`<div class="quick-filter-group" role="group" aria-label="${label} 빠른 선택"><b>${label}</b><div>${values.map(value=>`<button type="button" data-filter="${id}" data-value="${value}" aria-pressed="${!value}">${value||'전체'}</button>`).join('')}</div></div>`).join('');
+  bar.onclick=e=>{
+    const button=e.target.closest('[data-filter]');if(!button)return;
+    $(button.dataset.filter).value=button.dataset.value;
+    $(button.dataset.filter).dispatchEvent(new Event('change'));
+    $('results').scrollIntoView({block:'start'});
+  };
+  $('results').prepend(bar);
+}
+function matchesTrack(row) {
+  const selected=$('track').value;
+  return !selected||(['일반','학사'].includes(selected)?row.type.startsWith(selected):row.type===selected);
+}
 function render() {
   if(!data) return;
+  document.querySelectorAll('.quick-filters [data-filter]').forEach(button=>button.setAttribute('aria-pressed',String($(button.dataset.filter).value===button.dataset.value)));
   renderYearImages();
   $('quotaHeader').textContent=($('year').value||'2026')+' 인원';
   const words=$('query').value.trim().split(/\s+/).filter(Boolean).map(norm);
-  filtered=activeRows().filter(r=>(!schoolId||r.school===Number(schoolId))&&(!$('track').value||r.type===$('track').value)&&(!$('group').value||r.category===$('group').value)&&(!$('campus').value||campusValue(r)===$('campus').value)&&(!$('status').value||r.status===$('status').value)&&(!$('favoriteOnly').checked||favorites.has(r.id))&&words.every(w=>norm(schoolName(r)+' '+r.department+' '+r.type+' '+r.group+' '+campusName(r)).includes(w)));
+  filtered=activeRows().filter(r=>(!schoolId||r.school===Number(schoolId))&&matchesTrack(r)&&(!$('group').value||r.category===$('group').value)&&(!$('campus').value||campusValue(r)===$('campus').value)&&(!$('status').value||r.status===$('status').value)&&(!$('favoriteOnly').checked||favorites.has(r.id))&&words.every(w=>norm(schoolName(r)+' '+r.department+' '+r.type+' '+r.group+' '+campusName(r)).includes(w)));
   if($('sort').value==='name') filtered.sort((a,b)=>a.department.localeCompare(b.department,'ko'));
   const pages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE)); page=Math.min(page,pages-1);
   const school=schoolMap.get(Number(schoolId));
@@ -207,6 +224,7 @@ $('openCompare').onclick=openComparison;
 $('closeDetail').onclick=()=>closeDialog('detailDialog'); $('closeCompare').onclick=()=>closeDialog('compareDialog');
 ['detailDialog','compareDialog'].forEach(id=>$(id).addEventListener('click',e=>{if(e.target===$(id)){const r=$(id).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog(id);}}));
 // The reference payload is supplied inside the authenticated encrypted page.
+setupQuickFilters();
 const bundled=document.getElementById('localReferenceData');
 if(bundled) { try{load(JSON.parse(bundled.textContent),'2026 검수본',true);}catch(e){$('loadStatus').textContent=e.message;$('loadStatus').classList.add('error');} }
 })();
