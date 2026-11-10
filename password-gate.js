@@ -33,8 +33,8 @@ function enter(html,key,payload){
   // without changing the encrypted data or session key.
   if(document.body.dataset.encrypted==='reference.enc.json'&&!$('sealedPayload')){
     html=html.replace(/<style>[\s\S]*?<\/style>/,'')
-      .replace('</head>','<link rel="stylesheet" href="reference-2026.css?v=direct-20261110"></head>')
-      .replace(/<script>\/\* School\/department reference viewer\.[\s\S]*?<\/script>/,'<script src="reference-2026.js?v=direct-20261110"></script>');
+      .replace('</head>','<link rel="stylesheet" href="reference-2026.css?v=audit-20261110"></head>')
+      .replace(/<script>\/\* School\/department reference viewer\.[\s\S]*?<\/script>/,'<script src="reference-2026.js?v=audit-20261110"></script>');
   }
   document.open();document.write(html);document.close();
 }

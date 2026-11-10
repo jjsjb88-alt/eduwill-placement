@@ -60,7 +60,7 @@ function updateCampusOptions() {
 function renderYearImages() {
   const selected=Number($('year').value), images=(data.imageRecords||[]).filter(x=>x.school===Number(schoolId)&&(!selected||x.year===selected));
   $('yearImages').hidden=!images.length;
-  $('yearImages').innerHTML=images.length?'<h2>학년도별 원문 도표</h2><p class="muted">계열별·공동모집 지표는 학과별 점수로 나누지 않고 원문 그대로 표시합니다.</p>'+images.map(x=>`<details ${selected?'open':''}><summary>${esc(x.year+' · '+x.caption)}</summary><figure><img src="${esc(x.dataUrl)}" alt="${esc(x.year+' '+x.caption)}" loading="lazy"><figcaption>${esc(x.source)}</figcaption></figure></details>`).join(''):'';
+  $('yearImages').innerHTML=images.length?'<details><summary>원문 성적표 '+images.length+'개 확인</summary><p class="muted">학과별 성적표와 계열별·공동모집 지표를 원문으로 확인합니다.</p>'+images.map(x=>`<details><summary>${esc(x.year+' · '+x.caption)}</summary><figure><img src="${esc(x.dataUrl)}" alt="${esc(x.year+' '+x.caption)}" loading="lazy"><figcaption>${esc(x.source)}</figcaption></figure></details>`).join('')+'</details>':'';
 }
 function annualRows(row) {
   return (row.annualIds||[row.id]).map(id=>recordMap.get(id)).filter(Boolean).sort((a,b)=>(a.year||2026)-(b.year||2026));
@@ -72,11 +72,30 @@ function overviewYears() {
 function notRecruited(row) {
   return !hasScore(row)&&(row.quota==='-'||row.quota==='0'||row.quotaKind==='미모집');
 }
+function missingYearHTML(row,year,full) {
+  const audit=row.historyAudit?.[year];
+  if(!audit)return '<small class="year-missing">원문 대조 필요</small>';
+  if(!full)return `<button class="audit-state" data-detail="${esc(row.id)}" title="${esc(audit.note)}">${esc(audit.label)} ↗</button>`;
+  const related=(audit.relatedIds||[]).map(id=>recordMap.get(id)).filter(Boolean);
+  return `<b class="audit-label">${esc(audit.label)}</b><p class="audit-note">${esc(audit.note)}</p>${sourceLink(audit)}${(audit.imageIds||[]).map(id=>`<button class="source-link" data-image="${esc(id)}">원문 도표 보기 ↗</button>`).join('')}${related.length?`<details class="audit-evidence"><summary>관련 원문 ${related.length}개 확인</summary>${related.map(r=>`<div class="year-entry"><b>${esc(r.department)}</b><small class="year-context">${esc(r.type)} · ${esc(campusName(r)||'캠퍼스 미기재')}</small>${scoreHTML(r,true)}${sourceLink(r)}</div>`).join('')}</details>`:''}`;
+}
 function annualHTML(row,full=false) {
   const entries=annualRows(row), years=full?(data.availableYears||[2026]):overviewYears();
   return `<div class="year-strip ${full?'year-strip-full':''}">${years.map(year=>{
-    const matches=entries.filter(r=>(r.year||2026)===year);
-    return `<section class="year-cell ${year===2026?'year-latest':''} ${matches.length&&matches.every(notRecruited)?'year-not-recruited':''}" data-year="${year}"><b class="year-heading">${year}</b>${matches.length?matches.map((entry,index)=>`<div class="year-entry ${notRecruited(entry)?'entry-not-recruited':''}">${matches.length>1?`<small class="year-context">원문 표 ${index+1} / ${matches.length}</small>`:''}${notRecruited(entry)?'<span class="no-selection-mark" aria-hidden="true">—</span><span class="no-selection-label">미선발</span>':full?scoreHTML(entry,true):overviewScoreHTML(entry,row.id)}${entry.quota==='-'&&hasScore(entry)?'<small class="year-conflict">모집·성적 상충 확인</small>':''}${entry.yearTitle&&entry.yearTitle!==String(year)?`<small class="year-context">${esc(entry.yearTitle)}</small>`:''}${full?`<div class="year-quota">${quotaHTML(entry)}</div><small class="year-context">${esc(entry.department)}${campusName(entry)?' · '+esc(campusName(entry)):''}</small>${sourceLink(entry)}`:''}</div>`).join(''):'<small class="year-missing">연결된 자료 없음</small>'}</section>`;
+    const matches=entries.filter(r=>(r.year||2026)===year).map(entry=>{
+      // The original 2025 Korea Polytechnic table combines exam routes.
+      // Keep every metric, but lead with the exam selected in the current row.
+      if(row.school===33&&row.type.startsWith('일반(')) {
+        const exam=row.type.includes('수학')?'수학':row.type.includes('영어')?'영어':'면접';
+        const relevant=entry.metrics.filter(m=>m.label.includes(exam)||(exam==='면접'&&m.label.includes('전적대성적')));
+        if(relevant.length) {
+          const quota=entry.fields.find(f=>f.label===(exam==='면접'?'면접(포트)':exam));
+          return {...entry,metrics:relevant,...(quota?{quota:quota.value,quotaKind:'시험별 모집인원'}:{})};
+        }
+      }
+      return entry;
+    });
+    return `<section class="year-cell ${year===2026?'year-latest':''} ${matches.length&&matches.every(notRecruited)?'year-not-recruited':''}" data-year="${year}"><b class="year-heading">${year}</b>${matches.length?matches.map((entry,index)=>`<div class="year-entry ${notRecruited(entry)?'entry-not-recruited':''}">${matches.length>1?`<small class="year-context">원문 표 ${index+1} / ${matches.length}</small>`:''}${notRecruited(entry)?'<span class="no-selection-mark" aria-hidden="true">—</span><span class="no-selection-label">미선발</span>':full?scoreHTML(entry,true):overviewScoreHTML(entry,row.id)}${entry.quota==='-'&&hasScore(entry)?'<small class="year-conflict">모집·성적 상충 확인</small>':''}${norm(entry.department)!==norm(row.department)?`<small class="historical-name">원문명 · ${esc(entry.department)}</small>`:''}${entry.type!==row.type?`<small class="year-context">원문 전형 · ${esc(entry.type)}</small>`:''}${entry.yearTitle&&entry.yearTitle!==String(year)?`<small class="year-context">${esc(entry.yearTitle)}</small>`:''}${full?`<div class="year-quota">${quotaHTML(entry)}</div><small class="year-context">${esc(entry.department)}${campusName(entry)?' · '+esc(campusName(entry)):''}</small>${sourceLink(entry)}`:''}</div>`).join(''):missingYearHTML(row,year,full)}</section>`;
   }).join('')}</div>`;
 }
 function load(input, filename='검수 자료', automatic=false) {
@@ -136,7 +155,7 @@ function quotaHTML(row) {
   return `<span class="quota-kind ${/공동|최대/.test(row.quotaKind)?'shared':''}">${esc(row.quotaKind)}</span><div class="quota-value">${esc(value)}</div>`;
 }
 function overviewScoreHTML(row,detailId) {
-  const metric=row.metrics[0];
+  const metric=row.metrics.find(m=>typeof m.value==='number')||row.metrics.find(m=>m.raw&&m.raw!=='-')||row.metrics[0];
   if(!metric)return scoreHTML(row);
   const value=metric.value===null?(metric.raw==='-'||!metric.raw?'미확보':metric.raw):fmt(metric.value);
   return `<span class="score-value ${metric.value===null?'missing':''}">${esc(value)}</span><small class="score-metric">${esc(metric.label)}</small>${row.metrics.length>1?`<button class="metric-more" data-detail="${esc(detailId)}">전체 ${row.metrics.length}개 지표 보기 ↗</button>`:''}`;
@@ -145,6 +164,12 @@ function statusHTML(row) {
   return `<span class="badge ${row.flags.length?'warn':hasScore(row)?'available':''}">${esc(row.status)}</span>`;
 }
 function setupQuickFilters() {
+  const imageDialog=document.createElement('dialog');
+  imageDialog.id='imageDialog';
+  imageDialog.innerHTML='<div class="dialog-top"><h2 id="imageTitle">원문 도표</h2><button class="close-button" id="closeImage" aria-label="원문 닫기">×</button></div><figure id="imageBody"></figure>';
+  imageDialog.setAttribute('aria-labelledby','imageTitle');document.body.append(imageDialog);
+  $('closeImage').onclick=()=>imageDialog.close();
+  document.addEventListener('click',e=>{const button=e.target.closest('[data-image]');if(!button)return;const source=(data.imageRecords||[]).find(x=>x.id===button.dataset.image);if(!source)return;$('imageTitle').textContent=source.year+' · '+source.caption;$('imageBody').innerHTML=`<img src="${esc(source.dataUrl)}" alt="${esc(source.caption)}"><figcaption>${esc(source.source)}</figcaption>`;imageDialog.showModal();});
   document.querySelector('.page-heading h1').textContent='학교·학과 성적 조회';
   document.querySelector('.page-heading p').textContent='5개년 성적을 나란히 비교하세요. 미선발 연도는 회색으로 구분합니다.';
   const advanced=document.createElement('details');
@@ -164,7 +189,7 @@ function setupQuickFilters() {
   $('results').prepend(bar);
   const legend=document.createElement('div');
   legend.className='history-legend';
-  legend.innerHTML='<b id="historyRange"></b><span><i aria-hidden="true"></i>미선발</span><span>미확보: 성적 자료 없음</span>';
+  legend.innerHTML='<b id="historyRange"></b><span><i aria-hidden="true"></i>미선발</span><span>미확보: 원문 성적 공란</span><span>자료·연결 상태 ↗: 대조 근거 확인</span>';
   document.querySelector('.table-wrap').before(legend);
 }
 function matchesTrack(row) {
@@ -202,7 +227,7 @@ function reset() {
 }
 function sourceLink(row) {
   const url=safeSource(row.sourceUrl);
-  return url?`<a class="source-link" href="${esc(url)}" target="_blank" rel="noopener">정본 원문 ${esc(row.source)} 열기 ↗</a>`:'';
+  return (row.sourceImage?`<button class="source-link" data-image="${esc(row.sourceImage)}">성적표 원본 보기 ↗</button>`:'')+(url?`<a class="source-link" href="${esc(url)}" target="_blank" rel="noopener">정본 원문 ${esc(row.source)} 열기 ↗</a>`:'');
 }
 function showDialog(id) { lastFocus=document.activeElement; $(id).showModal(); }
 function closeDialog(id) { $(id).close(); lastFocus?.focus(); }
