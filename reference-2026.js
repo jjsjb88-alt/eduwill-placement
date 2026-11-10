@@ -65,11 +65,18 @@ function renderYearImages() {
 function annualRows(row) {
   return (row.annualIds||[row.id]).map(id=>recordMap.get(id)).filter(Boolean).sort((a,b)=>(a.year||2026)-(b.year||2026));
 }
+function overviewYears() {
+  const years=data.availableYears||[2026],recent=years.slice(-5),selected=Number($('year').value);
+  return selected&&selected<recent[0]?years.slice(0,5):recent;
+}
+function notRecruited(row) {
+  return !hasScore(row)&&(row.quota==='-'||row.quota==='0'||row.quotaKind==='미모집');
+}
 function annualHTML(row,full=false) {
-  const entries=annualRows(row), years=data.availableYears||[2026];
+  const entries=annualRows(row), years=full?(data.availableYears||[2026]):overviewYears();
   return `<div class="year-strip ${full?'year-strip-full':''}">${years.map(year=>{
     const matches=entries.filter(r=>(r.year||2026)===year);
-    return `<section class="year-cell ${year===2026?'year-latest':''}" data-year="${year}"><b class="year-heading">${year}</b>${matches.length?matches.map((entry,index)=>`<div class="year-entry">${matches.length>1?`<small class="year-context">원문 표 ${index+1} / ${matches.length}</small>`:''}${scoreHTML(entry,true)}${entry.yearTitle&&entry.yearTitle!==String(year)?`<small class="year-context">${esc(entry.yearTitle)}</small>`:''}${full?`<div class="year-quota">${quotaHTML(entry)}</div><small class="year-context">${esc(entry.department)}${campusName(entry)?' · '+esc(campusName(entry)):''}</small>${sourceLink(entry)}`:''}</div>`).join(''):'<small class="year-missing">연결된 자료 없음</small>'}</section>`;
+    return `<section class="year-cell ${year===2026?'year-latest':''} ${matches.length&&matches.every(notRecruited)?'year-not-recruited':''}" data-year="${year}"><b class="year-heading">${year}</b>${matches.length?matches.map((entry,index)=>`<div class="year-entry ${notRecruited(entry)?'entry-not-recruited':''}">${matches.length>1?`<small class="year-context">원문 표 ${index+1} / ${matches.length}</small>`:''}${notRecruited(entry)?'<span class="no-selection-mark" aria-hidden="true">—</span><span class="no-selection-label">미선발</span>':full?scoreHTML(entry,true):overviewScoreHTML(entry,row.id)}${entry.quota==='-'&&hasScore(entry)?'<small class="year-conflict">모집·성적 상충 확인</small>':''}${entry.yearTitle&&entry.yearTitle!==String(year)?`<small class="year-context">${esc(entry.yearTitle)}</small>`:''}${full?`<div class="year-quota">${quotaHTML(entry)}</div><small class="year-context">${esc(entry.department)}${campusName(entry)?' · '+esc(campusName(entry)):''}</small>${sourceLink(entry)}`:''}</div>`).join(''):'<small class="year-missing">연결된 자료 없음</small>'}</section>`;
   }).join('')}</div>`;
 }
 function load(input, filename='검수 자료', automatic=false) {
@@ -128,18 +135,18 @@ function quotaHTML(row) {
   const value=isNum?`${fmt(row.quota)}명`:row.quota==='-'?'미모집':row.quota==='?'?'확인 필요':row.quota||'원문 공란';
   return `<span class="quota-kind ${/공동|최대/.test(row.quotaKind)?'shared':''}">${esc(row.quotaKind)}</span><div class="quota-value">${esc(value)}</div>`;
 }
-function summaryScoreHTML(row) {
-  const metric=row.metrics[0],year=row.year||2026;
-  if(!metric)return `<div class="summary-score" data-year="${year}"><small class="summary-year">${year}</small>${scoreHTML(row)}</div>`;
+function overviewScoreHTML(row,detailId) {
+  const metric=row.metrics[0];
+  if(!metric)return scoreHTML(row);
   const value=metric.value===null?(metric.raw==='-'||!metric.raw?'미확보':metric.raw):fmt(metric.value);
-  return `<div class="summary-score" data-year="${year}"><small class="summary-year">${year}</small><span class="score-value ${metric.value===null?'missing':''}">${esc(value)}</span><small class="score-metric">${esc(metric.label)}</small>${row.yearTitle&&row.yearTitle!==String(year)?`<small class="summary-scale">${esc(row.yearTitle)}</small>`:''}${row.metrics.length>1?`<button class="metric-more" data-detail="${esc(row.id)}">전체 ${row.metrics.length}개 지표 보기 ↗</button>`:''}</div>`;
+  return `<span class="score-value ${metric.value===null?'missing':''}">${esc(value)}</span><small class="score-metric">${esc(metric.label)}</small>${row.metrics.length>1?`<button class="metric-more" data-detail="${esc(detailId)}">전체 ${row.metrics.length}개 지표 보기 ↗</button>`:''}`;
 }
 function statusHTML(row) {
   return `<span class="badge ${row.flags.length?'warn':hasScore(row)?'available':''}">${esc(row.status)}</span>`;
 }
 function setupQuickFilters() {
   document.querySelector('.page-heading h1').textContent='학교·학과 성적 조회';
-  document.querySelector('.page-heading p').textContent='학과를 찾고, 상세에서 연도별 성적과 모든 지표를 확인하세요.';
+  document.querySelector('.page-heading p').textContent='5개년 성적을 나란히 비교하세요. 미선발 연도는 회색으로 구분합니다.';
   const advanced=document.createElement('details');
   advanced.className='advanced-filters';
   advanced.innerHTML='<summary>상세 필터 <span>학년도 · 캠퍼스 · 자료 상태</span></summary>';
@@ -155,6 +162,10 @@ function setupQuickFilters() {
     $('results').scrollIntoView({block:'start'});
   };
   $('results').prepend(bar);
+  const legend=document.createElement('div');
+  legend.className='history-legend';
+  legend.innerHTML='<b id="historyRange"></b><span><i aria-hidden="true"></i>미선발</span><span>미확보: 성적 자료 없음</span>';
+  document.querySelector('.table-wrap').before(legend);
 }
 function matchesTrack(row) {
   const selected=$('track').value;
@@ -167,7 +178,9 @@ function render() {
   document.querySelector('.advanced-filters summary span').textContent=selectedFilters.length?selectedFilters.map(id=>$(id).selectedOptions[0].textContent).join(' · '):'학년도 · 캠퍼스 · 자료 상태';
   renderYearImages();
   $('quotaHeader').textContent=($('year').value||'2026')+' 인원';
-  document.querySelector('.dept-table thead th:nth-child(5)').textContent=($('year').value||'2026')+' 성적 · 지표';
+  const years=overviewYears();
+  $('historyRange').textContent=years[0]+'–'+years[years.length-1]+' · 5개년 성적';
+  document.querySelector('.dept-table thead th:nth-child(5)').textContent='5개년 성적 · 지표';
   const words=$('query').value.trim().split(/\s+/).filter(Boolean).map(norm);
   filtered=activeRows().filter(r=>(!schoolId||r.school===Number(schoolId))&&matchesTrack(r)&&(!$('group').value||r.category===$('group').value)&&(!$('campus').value||campusValue(r)===$('campus').value)&&(!$('status').value||r.status===$('status').value)&&(!$('favoriteOnly').checked||favorites.has(r.id))&&words.every(w=>norm(schoolName(r)+' '+r.department+' '+r.type+' '+r.group+' '+campusName(r)).includes(w)));
   if($('sort').value==='name') filtered.sort((a,b)=>a.department.localeCompare(b.department,'ko'));
@@ -177,7 +190,7 @@ function render() {
   $('resultCount').textContent=`${fmt(filtered.length)}개 모집단위·전형`;
   $('schoolNote').hidden=!school;
   if(school) $('schoolNote').innerHTML=`<details><summary>이 학교의 성적·모집 기준 확인</summary><p>${esc(school.note||'2026 검수본의 1차 합격자 평균점수와 모집인원입니다. 원문에서 전형·시험 기준을 함께 확인하세요.')}</p><a href="${esc(safeSource(school.url))}" target="_blank" rel="noopener">해당 학교 정본 열기 ↗</a></details>`;
-  $('rows').innerHTML=filtered.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE).map(r=>`<tr data-row="${esc(r.id)}"><td><div class="controls-cell"><button class="star-button" data-star="${esc(r.id)}" aria-label="${esc(r.department)} 관심 학과" aria-pressed="${favorites.has(r.id)}">${favorites.has(r.id)?'★':'☆'}</button><input class="compare-check" type="checkbox" data-compare="${esc(r.id)}" aria-label="${esc(schoolName(r)+' '+r.type+' '+r.department)} 비교 선택" ${compared.has(r.id)?'checked':''}></div></td><td><div class="school-label">${esc(schoolName(r))}${campusName(r)?' · '+esc(campusName(r)):''}</div><button class="dept-name" data-detail="${esc(r.id)}">${esc(r.department)}</button></td><td><span class="type-label">${esc(r.type)}</span><span class="sub-label">${esc(r.group||'원문 계열 미구분')}</span></td><td>${quotaHTML(r)}</td><td>${summaryScoreHTML(r)}</td><td>${statusHTML(r)}</td><td><button class="detail-button" data-detail="${esc(r.id)}" aria-label="${esc(r.department)} 상세 보기">연도별 ↗</button></td></tr>`).join('');
+  $('rows').innerHTML=filtered.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE).map(r=>`<tr data-row="${esc(r.id)}"><td><div class="controls-cell"><button class="star-button" data-star="${esc(r.id)}" aria-label="${esc(r.department)} 관심 학과" aria-pressed="${favorites.has(r.id)}">${favorites.has(r.id)?'★':'☆'}</button><input class="compare-check" type="checkbox" data-compare="${esc(r.id)}" aria-label="${esc(schoolName(r)+' '+r.type+' '+r.department)} 비교 선택" ${compared.has(r.id)?'checked':''}></div></td><td><div class="school-label">${esc(schoolName(r))}${campusName(r)?' · '+esc(campusName(r)):''}</div><button class="dept-name" data-detail="${esc(r.id)}">${esc(r.department)}</button></td><td><span class="type-label">${esc(r.type)}</span><span class="sub-label">${esc(r.group||'원문 계열 미구분')}</span></td><td>${quotaHTML(r)}</td><td>${annualHTML(r)}</td><td>${statusHTML(r)}</td><td><button class="detail-button" data-detail="${esc(r.id)}" aria-label="${esc(r.department)} 상세 보기">연도별 ↗</button></td></tr>`).join('');
   $('empty').hidden=filtered.length>0||!$('yearImages').hidden;
   $('pageInfo').textContent=filtered.length?`${fmt(page*PAGE_SIZE+1)}–${fmt(Math.min((page+1)*PAGE_SIZE,filtered.length))} / ${fmt(filtered.length)} · ${page+1} / ${pages}페이지`:'조회 결과 0개';
   $('prevPage').disabled=page===0; $('nextPage').disabled=page>=pages-1;
