@@ -2,6 +2,7 @@
 (() => {
 'use strict';
 const $=id=>document.getElementById(id), SESSION='placement-unlock-v1';
+const rememberKey=document.body.dataset.rememberKey!=='false';
 const bytes=text=>Uint8Array.from(atob(text),c=>c.charCodeAt(0));
 const base64=array=>btoa(String.fromCharCode(...array));
 let envelopePromise, busy=false;
@@ -27,7 +28,7 @@ async function decrypt(keyBytes,payload){
 function status(message,error=false){$('gateStatus').textContent=message;$('gateStatus').classList.toggle('error',error);}
 function enter(html,key,payload){
   if(!/^<!doctype html>/i.test(html.trimStart()))throw Error('자료 형식을 확인할 수 없습니다.');
-  try{sessionStorage.setItem(SESSION,JSON.stringify({salt:payload.salt,key:base64(key)}));}catch{}
+  if(rememberKey){try{sessionStorage.setItem(SESSION,JSON.stringify({salt:payload.salt,key:base64(key)}));}catch{}}
   $('sharedPassword').value='';
   // Reference envelopes bundle older assets. Use the current viewer assets
   // without changing the encrypted data or session key.
@@ -58,5 +59,6 @@ $('passwordForm').onsubmit=async event=>{
     enter(html,key,payload);
   }catch(error){busy=false;$('unlockButton').disabled=false;status(error.message||'자료를 열지 못했습니다. 다시 시도해주세요.',true);$('sharedPassword').focus();$('sharedPassword').select();}
 };
-cached();
+if(rememberKey) cached();
+else if(!supported()) status('최신 Chrome, Edge 또는 Safari에서 열어주세요.',true);
 })();
