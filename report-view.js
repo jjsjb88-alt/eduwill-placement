@@ -112,10 +112,13 @@
     $('school').textContent=school?.school||'학과별 결과';
     const q=normalize($('department').value), field=$('field').value, track=$('track').value;
     const rows=(school?.rows||[]).filter(([name,f,,t])=>(field==='전체'||field===f)&&(track==='전체'||t.replace(/\s/g,'').startsWith(track))&&normalize(name).includes(q));
-    $('rows').replaceChildren(...rows.map(([name,f,c,t,b])=>{
+    $('rows').replaceChildren(...rows.map(([name,f,c,t,b,overlap])=>{
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',name),el('small',[f,c,t].filter(Boolean).join(' · ')));
-      line.append(title,badge(b));return line;
+      const verdict=el('div',null,'verdict');
+      verdict.append(badge(b));
+      if(b==='도전' && overlap===true)verdict.append(el('small','최근 성적은 합격권에 닿음','overlap'));
+      line.append(title,verdict);return line;
     }));
     if(!rows.length)$('rows').textContent='표시할 학과가 없습니다.';
     $('rows').scrollTop=0;
