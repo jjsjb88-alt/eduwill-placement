@@ -2,11 +2,16 @@ import {account,login,logout,quotaAdmin,quotaGuide,quotaExcerpt,publishQuota} fr
 import {gachonTrend,change,seatText} from './trend.js';
 
 const $=id=>document.getElementById(id);
-const gachon='가천대학교', swu='서울여자대학교';
+const gachon='가천대학교', kau='한국항공대학교', swu='서울여자대학교';
 const gachonSource='https://admission.gachon.ac.kr/upload/BBS0021/20261123093522349J3D.PDF';
 const gachonHash='47830bd8d1b0f40e152ea6d6e8df00daa13e319d36817f2fb4a802d6194be434';
+const verified={
+  [gachon]:{file:'gachon-2027',page:4,hash:gachonHash,source:gachonSource},
+  [kau]:{file:'kau-2027',page:6,hash:'6b0b37bccec87047e6b3a388a9c60da95024a841023634d10bbbc4219b3a496a',source:'https://ibhak.kau.ac.kr/upload/GUIDES/20261123145318001.pdf'}
+};
+const notes=document.querySelector('#textTable p'), gachonNotes=notes.textContent;
 const swuSource='https://admission.swu.ac.kr/bbs/board.php?bo_table=flashpaper&sca=%ED%8E%B8%EC%9E%85%ED%95%99&sub_ck=1';
-const schoolName=s=>({가천대:gachon,서울여대:swu}[s] || s);
+const schoolName=s=>({가천대:gachon,서울여대:swu,항공대:kau,한국항공대:kau}[s] || s);
 function schoolValue(raw){
   const value=schoolName(raw.normalize('NFKC').trim().replace(/\s+/g,''));
   if(typeof value!=='string'||!value||value.length>80||/[\/\x00-\x1f]/.test(value)||/^\.\.?$/.test(value))throw Error('학교 이름을 확인해 주세요.');
@@ -43,29 +48,48 @@ function tableRow(cells,heading=false){
   });
   return tr;
 }
-async function showGachon(id){
-  const res=await fetch('gachon-2027.json');
+async function showVerified(id,school,guide){
+  const res=await fetch(guide.file+'.json');
   if(!res.ok)throw Error('검증한 모집표를 열 수 없습니다.');
   const data=await res.json();
   if(id!==lookupId)return;
-  showSource(gachon,[4],gachonSource+'#page=4');
+  showSource(school,[guide.page],guide.source+'#page='+guide.page);
   $('labels').replaceChildren(tableRow(['모집단위',...data.headers],true));
-  $('seats').replaceChildren(...data.rows.map(row=>tableRow(row)));
+  $('seats').replaceChildren(...data.rows.map(row=>{
+    const tr=tableRow(row), majors=data.majors?.[row[0]];
+    if(majors){
+      const small=document.createElement('small');small.textContent=majors.join(' · ');tr.firstChild.append(small);
+    }
+    return tr;
+  }));
   $('totals').replaceChildren(tableRow(['합계',...data.totals]));
   $('original').hidden=$('textTable').hidden=$('excerptLink').hidden=false;
-  $('excerptLink').href='gachon-2027-p4.png';
-  $('feedback').textContent='2026년 11월 23일 입학처 원문 대조본';
+  $('original').src=$('excerptLink').href=guide.file+'-p'+guide.page+'.png';
+  $('original').alt='2027학년도 '+school+' 모집요강 PDF '+guide.page+'쪽 모집인원표';
+  $('feedback').textContent='입학처 모집요강 원문 대조본';
+  $('gachonComparison').hidden=school!==gachon;
+  $('kauComparison').hidden=school!==kau;
+  notes.textContent=school===gachon?gachonNotes:'단과대학 인원은 해당 세부전공 전체의 공동 모집인원입니다. 빈칸은 원문 미기재입니다. 전공 선택 범위와 항공운항학과 등 제외 조건은 아래 원문에서 확인할 수 있습니다.';
+  if(school===kau){
+    $('original').before($('textTable'));$('textTable').open=true;
+    showTotals(data.headers.slice(0,-1),data.previousTotals,data.totals.slice(0,-1));
+    $('trendPanel').hidden=false;return;
+  }
+  $('publishedPdf').after($('textTable'));
   gachonTrend().then(data=>{
     if(id===lookupId&&!$('original').hidden)showTrend(data);
   }).catch(()=>{
     if(id===lookupId&&!$('original').hidden)$('feedback').textContent+=' · 연도 비교표를 불러오지 못했습니다.';
   });
 }
+function showTotals(headers,before,after){
+  $('trackTrend').replaceChildren(...headers.map((label,i)=>tableRow([label,before[i],after[i],change(before[i],after[i])])));
+  const total=values=>values.reduce((sum,n)=>sum+n,0);
+  $('trendTotal').replaceChildren(tableRow(['합계',total(before),total(after),change(total(before),total(after))]));
+}
 function showTrend({before,after,names}){
   const {headers}=after;
-  $('trackTrend').replaceChildren(...headers.map((label,i)=>tableRow([label,before.totals[i],after.totals[i],change(before.totals[i],after.totals[i])])));
-  const total=guide=>guide.totals.reduce((sum,n)=>sum+n,0);
-  $('trendTotal').replaceChildren(tableRow(['합계',total(before),total(after),change(total(before),total(after))]));
+  showTotals(headers,before.totals,after.totals);
   $('trendTrack').replaceChildren(...headers.map(label=>new Option(label,label)));
   $('trendQuery').value='';
   function filter(){
@@ -103,16 +127,17 @@ async function lookup(raw){
   const url=new URL(location.href);url.searchParams.set('school',school);history.replaceState(null,'',url);
   $('feedback').textContent='모집표 조회 중…';
   try{
-    if(school===gachon)await showGachon(id);
+    const builtIn=Object.hasOwn(verified,school)?verified[school]:null;
+    if(builtIn)await showVerified(id,school,builtIn);
     if(id!==lookupId)return;
     const guide=await quotaGuide(school);
     if(id!==lookupId)return;
-    if(!guide){if(school!==gachon)noGuide(school,false);return;}
-    if(school===gachon&&guide.sourceHash===gachonHash&&guide.pages.join(',')==='4')return;
-    clearPublic();
+    if(!guide){if(!builtIn)noGuide(school,false);return;}
+    if(builtIn&&guide.sourceHash===builtIn.hash&&guide.pages.join(',')===String(builtIn.page))return;
     const pdf=await quotaExcerpt(school,guide);
     if(await hash(await pdf.arrayBuffer())!==guide.excerptHash)throw Error('모집표 파일을 대조하지 못했습니다.');
     if(id!==lookupId)return;
+    clearPublic();
     showSource(school,guide.pages,guide.source);
     publicUrl=URL.createObjectURL(pdf);$('publishedPdf').src=publicUrl+'#view=FitH';
     $('excerptLink').href=publicUrl;$('publishedPdf').hidden=$('excerptLink').hidden=false;
@@ -168,9 +193,12 @@ $('file').onchange=async()=>{
   $('fileInfo').textContent='';
   if(!file)return;
   const id=editId;
-  if(await hash(await file.arrayBuffer())===gachonHash&&id===editId){
-    $('college').value=gachon;$('source').value=gachonSource;$('pages').value='4';
-    $('fileInfo').textContent='입학처에서 확인한 가천대학교 원본과 일치합니다.';
+  const digest=await hash(await file.arrayBuffer());
+  const known=Object.entries(verified).find(([,g])=>g.hash===digest);
+  if(known&&id===editId){
+    const [school,g]=known;
+    $('college').value=school;$('source').value=g.source;$('pages').value=g.page;
+    $('fileInfo').textContent='입학처에서 확인한 '+school+' 원본과 일치합니다.';
   }
 };
 $('editor').onsubmit=async e=>{
@@ -188,7 +216,8 @@ $('editor').onsubmit=async e=>{
     const pdf=await out.save();
     const [sourceHash,excerptHash,current]=await Promise.all([hash(bytes),hash(pdf),quotaGuide(school)]);
     if(id!==editId)return;
-    if(sourceHash===gachonHash && school!==gachon)throw Error('이 PDF는 가천대학교 모집요강입니다. 대학 이름을 확인해 주세요.');
+    const known=Object.entries(verified).find(([,g])=>g.hash===sourceHash);
+    if(known && known[0]!==school)throw Error('이 PDF는 '+known[0]+' 모집요강입니다. 대학 이름을 확인해 주세요.');
     draft={guide:{school,source,sourceHash,excerptHash,pages},pdf,expected:current?.version||null};
     previewUrl=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
     $('reviewPdf').src=previewUrl;$('reviewLink').href=previewUrl;

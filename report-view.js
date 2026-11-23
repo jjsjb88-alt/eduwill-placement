@@ -139,7 +139,8 @@
     const reasons=new Map((school?.rows||[]).map((row,i)=>[row,school.reasons?.[i]]));
     $('quotaSchool').hidden=!school;
     if(school)$('quotaSchool').href='quotas/?school='+encodeURIComponent(school.school);
-    const compare=school?.school==='가천대학교';
+    const isKau=school?.school==='한국항공대학교';
+    const compare=school?.school==='가천대학교'||isKau;
     $('quotaSchool').textContent=compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
     const quotaLines=[];
     $('fieldBasis').hidden=!school||field==='전체';
@@ -163,14 +164,15 @@
     if(compare){
       const linkText=el('span',$('quotaSchool').textContent);
       $('quotaSchool').replaceChildren(linkText);
-      showQuotaNumbers(quotaLines,linkText,track);
+      showQuotaNumbers(quotaLines,linkText,track,isKau);
     }
     $('rows').scrollTop=0;
   }
-  async function showQuotaNumbers(lines,linkText,selectedTrack){
+  async function showQuotaNumbers(lines,linkText,selectedTrack,isKau){
     try{
-      const {gachonTrend,change,currentName,seatText}=await import('./quotas/trend.js');
-      const {names,before,after}=await gachonTrend();
+      const {gachonTrend,kauQuotas,change,currentName,seatText}=await import('./quotas/trend.js');
+      const guide=isKau?await kauQuotas():null;
+      const {names,before,after}=guide?{before:{totals:guide.previousTotals},after:guide}:await gachonTrend();
       if(!linkText.isConnected)return;
       const tracks=selectedTrack==='전체'?['일반','학사']:[selectedTrack];
       linkText.replaceChildren('학교 모집인원 (2026 → 2027) · ');
@@ -180,6 +182,15 @@
         linkText.append(t+' '+before.totals[i]+' → ',el('strong',after.totals[i]+'명'));
       });
       linkText.append(' ↗');
+      if(isKau){
+        for(const {name,track,meta} of lines){
+          const group=Object.entries(guide.majors).find(([,majors])=>majors.includes(name))?.[0];
+          const unit=guide.rows.find(row=>row[0]===(group||name));
+          const col=guide.headers.indexOf(track.replace(/편입(?:학)?$/,''));
+          if(unit && col>=0 && unit[col+1]!=null)meta.append(' · 2027 '+unit[0]+(guide.majors[unit[0]]?' 공동 모집 ':' '),el('strong',unit[col+1]+'명'));
+        }
+        return;
+      }
       for(const {name,track,meta} of lines){
         const label=track.replace(/\s/g,'').replace(/편입(?:학)?$/,'');
         const index=after.headers.indexOf(label);

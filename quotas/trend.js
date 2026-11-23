@@ -17,6 +17,14 @@ export const change=(before,after)=>{
 };
 
 let pending;
+let kauPending;
+export function kauQuotas(){
+  if(!kauPending)kauPending=fetch(new URL('./kau-2027.json',import.meta.url)).then(response=>{
+    if(!response.ok)throw Error('항공대 모집표를 열 수 없습니다.');
+    return response.json();
+  }).catch(error=>{kauPending=null;throw error;});
+  return kauPending;
+}
 export function gachonTrend(){
   if(!pending)pending=Promise.all([2026,2027].map(async year=>{
     const url=new URL('./gachon-'+year+'.json',import.meta.url);
