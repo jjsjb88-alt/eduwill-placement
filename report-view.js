@@ -114,7 +114,13 @@
     const school=selected==null?null:report.schools[selected];
     $('school').textContent=school?.school||'학과별 결과';
     const q=normalize($('department').value), field=$('field').value, track=$('track').value;
-    const rows=(school?.rows||[]).filter(([name,f,,t])=>(field==='전체'||field===f)&&(track==='전체'||t.replace(/\s/g,'').startsWith(track))&&normalize(name).includes(q));
+    const matching=(school?.rows||[]).filter(([name,,,t])=>(track==='전체'||t.replace(/\s/g,'').startsWith(track))&&normalize(name).includes(q));
+    const rows=matching.filter(([,f])=>field==='전체'||field===f);
+    $('quotaSchool').hidden=!school;
+    if(school)$('quotaSchool').href='quotas/?school='+encodeURIComponent(school.school);
+    $('fieldBasis').hidden=!school||field==='전체';
+    $('allFields').hidden=matching.length===rows.length;
+    $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
     $('rows').replaceChildren(...rows.map(([name,f,c,t,b,overlap])=>{
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',name),el('small',[f,c,t].filter(Boolean).join(' · ')));
@@ -148,4 +154,10 @@
   }
   $('track').onchange=$('field').onchange=()=>{band='전체';$('department').value='';renderSchools();};
   $('department').oninput=renderRows;
+  $('allFields').onclick=()=>{
+    $('field').value='전체';
+    const newBand=report.views['전체|'+$('track').value].find(([i])=>i===selected)?.[1];
+    if(band!==newBand)band='전체';
+    renderSchools();
+  };
 })();

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://apis.google.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://trnasfer-2982c.firebaseapp.com https://apis.google.com; frame-src blob: https://trnasfer-2982c.firebaseapp.com; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>대학별 모집인원 · 서정빈 배치상담실</title><link rel="stylesheet" href="../report-view.css"><link rel="stylesheet" href="quota.css"><script type="module" src="quota.js"></script></head>
+<body><header><div class="bar"><strong>에듀윌 편입</strong><span>서정빈 배치상담실</span></div></header>
+<main><nav><a href="../full-2026.html">← 배치상담</a></nav><p class="eyebrow">2027학년도 편입</p><h1>대학별 모집인원</h1>
+<form id="lookup"><label for="query">학교 이름</label><div class="inputRow"><input id="query" placeholder="예: 가천대학교" required maxlength="80"><button class="primary">조회</button></div></form>
+<p id="feedback" role="status"></p>
+<section id="result" hidden><h2 id="schoolTitle"></h2><div class="links"><span id="pageLabel"></span><a id="official" target="_blank" rel="noopener noreferrer">입학처 원문 ↗</a><a id="excerptLink" target="_blank" rel="noopener noreferrer" hidden>모집표 크게 보기 ↗</a></div>
+<img id="original" hidden src="gachon-2027-p4.png" alt="2027학년도 가천대학교 편입학 모집요강 4쪽 모집인원표. 아래 학과별 표에서 같은 내용을 읽을 수 있습니다.">
+<iframe id="publishedPdf" hidden title="공개된 모집인원 원문 페이지"></iframe>
+<details id="textTable" hidden><summary>학과별 표로 보기</summary><div class="scroll"><table><thead id="labels"></thead><tbody id="seats"></tbody><tfoot id="totals"></tfoot></table></div>
+<p>빈칸은 원문 미기재입니다. Ⓜ는 메디컬캠퍼스입니다. 우선선발은 일반 경영학과·회계세무학과와 학사 경영학과 모집인원에 포함되며, 최대 30%에서 소수점 이하는 버립니다. 간호학과는 재외국민 및 외국인을 제외하고 전적대학 간호학과 전공자만 지원할 수 있습니다.</p></details></section>
+<details id="management"><summary>관리자 PDF 등록</summary>
+<button type="button" class="quiet" id="adminLogin">관리자 계정 연결</button><p id="adminState" role="status"></p>
+<form id="editor" hidden><label>대학 공식 명칭<input id="college" maxlength="80" placeholder="가천대학교" required></label>
+<label>입학처 공식 모집요강 주소<input id="source" type="url" placeholder="https://" required></label>
+<label>2027학년도 모집요강 PDF<input id="file" type="file" accept="application/pdf,.pdf" required></label>
+<p id="fileInfo"></p><a id="fileLink" target="_blank" rel="noopener noreferrer" hidden>선택한 원본 PDF 열기 ↗</a>
+<label>모집인원이 있는 PDF 쪽 번호<input id="pages" placeholder="예: 4 또는 4-6, 10" required></label>
+<button class="quiet">공개할 쪽 미리보기</button></form>
+<section id="review" hidden><h3 id="reviewTitle"></h3><a id="reviewLink" target="_blank" rel="noopener noreferrer">미리보기 크게 열기 ↗</a><iframe id="reviewPdf" title="공개 전 모집인원 발췌 미리보기"></iframe>
+<label class="check"><input id="approved" type="checkbox">입학처 원문에서 대학·학년도·전형별 인원과 각주가 모두 일치하는지 확인했습니다.</label>
+<button id="publish" class="primary" disabled>검증한 모집표 게시</button></section></details>
+</main></body></html>
