@@ -166,7 +166,7 @@
   }
   async function showQuotaNumbers(lines,linkText,selectedTrack){
     try{
-      const {gachonTrend,change}=await import('./quotas/trend.js');
+      const {gachonTrend,change,currentName,seatText}=await import('./quotas/trend.js');
       const {names,before,after}=await gachonTrend();
       if(!linkText.isConnected)return;
       const tracks=selectedTrack==='전체'?['일반','학사']:[selectedTrack];
@@ -181,13 +181,14 @@
         const label=track.replace(/\s/g,'').replace(/편입(?:학)?$/,'');
         const index=after.headers.indexOf(label);
         if(index===-1)continue;
-        const pair=names.get(name.trim());
+        const canonical=currentName(name.trim()),pair=names.get(canonical);
         if(!pair){meta.append(' · 모집요강 학과명 대조 필요');continue;}
         const col=index+1,a=pair.before?.[col],b=pair.after?.[col];
-        const prev=a!=null?a+'명':pair.before?'미기재':'미선발';
-        const next=b!=null?b+'명':pair.after?'미기재':'미선발';
-        const delta=change(a,b);
-        meta.append(' · 모집 2026 '+prev+' → 2027 ',b!=null?el('strong',next):next,delta==='—'?'':' ('+delta+(a===b?'':'명')+')');
+        const prev=a!=null?a+'명':seatText(pair,'before',col);
+        const next=b!=null?b+'명':seatText(pair,'after',col);
+        const delta=pair.reorganized?'—':change(a,b);
+        meta.append(' · 모집 2026 '+(pair.oldName?pair.oldName+' ':'')+prev+' → 2027 '+(pair.oldName?canonical+' ':''),
+          b!=null?el('strong',next):next,delta==='—'?'':' ('+delta+(a===b?'':'명')+')');
       }
     }catch{ /* The school link still opens the original quotas. */ }
   }

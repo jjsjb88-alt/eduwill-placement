@@ -1,5 +1,5 @@
 import {account,login,logout,quotaAdmin,quotaGuide,quotaExcerpt,publishQuota} from '../application-store.js';
-import {gachonTrend,change} from './trend.js';
+import {gachonTrend,change,seatText} from './trend.js';
 
 const $=id=>document.getElementById(id);
 const gachon='가천대학교', swu='서울여자대학교';
@@ -73,8 +73,9 @@ function showTrend({before,after,names}){
     const rows=[];
     for(const [name,pair] of names){
       const a=pair.before?.[col],b=pair.after?.[col];
-      if(!name.includes(query)||(a==null&&b==null))continue;
-      rows.push(tableRow([name,a??(pair.before?'미기재':'미선발'),b??(pair.after?'미기재':'미선발'),change(a,b)]));
+      const label=name+(pair.oldName?' (2026 '+pair.oldName+')':'');
+      if(!label.includes(query)||(a==null&&b==null))continue;
+      rows.push(tableRow([label,seatText(pair,'before',col),seatText(pair,'after',col),pair.reorganized?'조직 개편':change(a,b)]));
     }
     if(!rows.length){
       const empty=tableRow(['해당하는 모집단위가 없습니다.']);
