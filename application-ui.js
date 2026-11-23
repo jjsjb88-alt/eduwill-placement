@@ -31,6 +31,7 @@
       case 'auth/popup-closed-by-user':return 'Google 로그인을 취소했습니다.';
       case 'auth/popup-blocked':return '브라우저에서 Google 로그인 팝업을 허용해 주세요.';
       case 'auth/unauthorized-domain':return 'Firebase에 현재 사이트 도메인을 등록해 주세요.';
+      case 'auth/operation-not-allowed':return 'Firebase Authentication에서 Google 로그인 제공업체를 사용 설정하고 저장해 주세요.';
       default:return '지원 기록에 연결하지 못했습니다. 연결 상태를 확인하고 다시 시도해 주세요.';
     }
   }
