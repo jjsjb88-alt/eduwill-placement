@@ -3,19 +3,31 @@
   const $=id=>document.getElementById(id), dialog=$('applicationDialog');
   let student, epoch=0, store, user, stop, ready=false, busy=false, records=new Set(), target, desired, notice='';
   const key=r=>[r.school,r.campus,r.department,r.field,r.track].join('|');
+  let currentUnits=new Map();
   function refresh(){
-    for(const line of $('rows').children){
+    for(const line of $('rows').querySelectorAll('.dept')){
       const mark=line.querySelector('.confirmed');
       if(mark)mark.hidden=!ready || !records.has(line.dataset.choice);
     }
     $('recordAccount').textContent=ready?'연결된 상담 계정':'지원 기록 연결';
     $('recordStatus').textContent=notice;
+    const previous=$('previousChoices');
+    previous.replaceChildren();
+    if(ready)for(const id of records){
+      const [school,campus,department,field,track]=id.split('|');
+      if(!currentUnits.has(school)||currentUnits.get(school).has(id))continue;
+      const button=document.createElement('button');button.type='button';button.className='quiet';
+      button.textContent=[school,campus,department,field,track].filter(Boolean).join(' · ');
+      button.onclick=()=>show({school,campus,department,field,track,verdict:'이전 지원 기록'});
+      previous.append(button);
+    }
+    $('previousApplications').hidden=!previous.childElementCount;
     if(!dialog.open)return;
     $('recordMessage').textContent=notice || (ready && user?user.email:'');
     $('recordGoogle').hidden=!store || !!user;
     $('recordLogout').hidden=!user;
     $('recordGoogle').disabled=$('recordLogout').disabled=busy;
-    $('recordSave').hidden=!target || !ready;
+    $('recordSave').hidden=!target || !ready || (desired && ['판정 자료 없음','이전 지원 기록'].includes(target.verdict));
     $('recordSave').disabled=busy;
     $('recordSave').textContent=desired?'지원 확정':'확정 취소';
     $('recordClose').disabled=busy && ready;
@@ -65,7 +77,8 @@
     $('recordTitle').textContent=row?row.school+' · '+row.department:'상담 계정';
     $('recordMeta').textContent=row?[$('student').textContent,row.campus,row.field,row.track,row.verdict].filter(Boolean).join(' · '):'';
     $('recordReason').hidden=!reason;
-    $('recordReason').textContent=reason?'판정 근거 · '+reason+' 비교 구간은 같은 학교·학과·전형의 과거 합격 자료를 바탕으로 정합니다. 구간 아래는 도전, 구간 안은 적정, 상한을 넘으면 안정입니다.':'';
+    $('recordReason').textContent=row?.verdict==='판정 자료 없음'?reason:
+      reason?'판정 근거 · '+reason+' 비교 구간은 같은 학교·학과·전형의 과거 합격 자료를 바탕으로 정합니다. 구간 아래는 도전, 구간 안은 적정, 상한을 넘으면 안정입니다.':'';
     dialog.showModal();refresh();
     if(!ready)void attach();
   }
@@ -93,7 +106,9 @@
   dialog.onclose=()=>{target=null;};
   $('recordAccount').onclick=()=>show(null);
   window.applicationRecords={
-    select(id){
+    select(id,schools=[]){
+      currentUnits=new Map(schools.filter(s=>s.catalogYear).map(s=>[s.school,new Set(s.rows.map(([d,f,c,t])=>[s.school,c,d,f,t].join('|')))]));
+      $('previousApplications').open=false;
       detached();student=id;target=null;if(dialog.open)dialog.close();refresh();
       if(id && sessionStorage.getItem('placement-record-session'))void attach();
     },

@@ -106,7 +106,7 @@
     $('history').hidden=!data.history.length;
     $('exams').replaceChildren(...data.history.map(r=>{const tr=el('tr');tr.append(...r.map(v=>el('td',v)));return tr;}));
     const studentId=match.studentId || (access.version==='6653734d48f11192'?match.id:null);
-    window.applicationRecords.select(studentId);
+    window.applicationRecords.select(studentId,data.schools);
     $('report').hidden=false;renderSchools();
   }
   function fail(token){if(token===serial)$('status').textContent='결과를 열지 못했습니다. 새로고침 후 다시 조회해주세요.';}
@@ -134,8 +134,12 @@
     const school=selected==null?null:report.schools[selected];
     $('school').textContent=school?.school||'학과별 결과';
     const q=normalize($('department').value), field=$('field').value, track=$('track').value;
-    const matching=(school?.rows||[]).filter(([name,,,t])=>(track==='전체'||t.replace(/\s/g,'').startsWith(track))&&normalize(name).includes(q));
-    const rows=matching.filter(([,f])=>field==='전체'||field===f);
+    const matching=(school?.rows||[]).filter(([name,,,t])=>(track==='전체'||t.replace(/\s/g,'').startsWith(track))&&
+      (normalize(name).includes(q)||school.majors?.[name]?.some(m=>normalize(m).includes(q))));
+    const rows=matching.filter(([,f])=>field==='전체'||field===f||f==='이학·사회');
+    const grouped=!!school?.catalogYear && track==='전체';
+    const sections=new Map();
+    if(school?.unitOrder)rows.sort((a,b)=>school.unitOrder.indexOf(a[0])-school.unitOrder.indexOf(b[0])||a[3].localeCompare(b[3],'ko'));
     const reasons=new Map((school?.rows||[]).map((row,i)=>[row,school.reasons?.[i]]));
     $('quotaSchool').hidden=!school;
     if(school)$('quotaSchool').href='quotas/?school='+encodeURIComponent(school.school);
@@ -143,14 +147,16 @@
     const compare=school?.school==='가천대학교'||isKau;
     $('quotaSchool').textContent=compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
     const quotaLines=[];
-    $('fieldBasis').hidden=!school||field==='전체';
+    $('fieldBasis').hidden=!school||(!school.catalogYear && field==='전체');
+    $('fieldBasis').textContent=school?.catalogYear?'2027 모집요강의 일반·학사 선발 모집단위입니다. 인문·자연은 상담용 분류입니다.':'원자료에 계열이 없으면 과거 합격자의 수학 모의고사 응시 비율로 추정합니다.';
     $('allFields').hidden=matching.length===rows.length;
     $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
-    $('rows').replaceChildren(...rows.map(row=>{
+    const lines=rows.map(row=>{
       const [name,f,c,t,b,marker]=row;
       const line=el('div',null,'dept'), title=el('div');
-      title.append(el('b',name),el('small',[f,c,t].filter(Boolean).join(' · ')));
+      title.append(el('b',grouped?t+'편입':name),el('small',[f,c,grouped?'':t].filter(Boolean).join(' · ')));
       if(compare)quotaLines.push({name,track:t,meta:title.lastChild});
+      if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
       verdict.append(badge(b));
       if(b==='도전' && marker==='peak3'){
@@ -158,8 +164,20 @@
         verdict.append(el('small','영어 상위 3회 기준 적정선 도달','peakNote'));
       }
       window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reasons.get(row));
-      line.append(title,verdict);return line;
-    }));
+      line.append(title,verdict);
+      if(grouped){
+        if(!sections.has(name)){
+          const group=el('section',null,'unitGroup');
+          group.append(el('h3',name));
+          if(school.majors?.[name])group.append(el('small',school.majors[name].join(' · ')));
+          sections.set(name,group);
+        }
+        sections.get(name).append(line);
+        line.setAttribute('aria-label',[name,t,b].join(' · '));
+      }
+      return line;
+    });
+    $('rows').replaceChildren(...(grouped?sections.values():lines));
     if(!rows.length)$('rows').textContent='표시할 학과가 없습니다.';
     if(compare){
       const linkText=el('span',$('quotaSchool').textContent);
