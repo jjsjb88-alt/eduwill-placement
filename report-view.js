@@ -152,18 +152,21 @@
     $('allFields').hidden=matching.length===rows.length;
     $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
     const lines=rows.map(row=>{
-      const [name,f,c,t,b,marker]=row;
+      const [name,f,c,t,b,marker,estimate]=row;
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',grouped?t+'편입':name),el('small',[f,c,grouped?'':t].filter(Boolean).join(' · ')));
       if(compare)quotaLines.push({name,track:t,meta:title.lastChild});
       if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
-      verdict.append(badge(b));
+      const verdictBadge=badge(b);
+      if(estimate==='midpoint' && b==='판정 자료 없음')verdictBadge.textContent='성적 확인 필요';
+      verdict.append(verdictBadge);
+      if(estimate==='midpoint')verdict.append(el('small','중위권(예상)'));
       if(b==='도전' && marker==='peak3'){
         line.classList.add('peakReach');
         verdict.append(el('small','영어 상위 3회 기준 적정선 도달','peakNote'));
       }
-      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reasons.get(row));
+      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reasons.get(row),estimate==='midpoint');
       line.append(title,verdict);
       if(grouped){
         if(!sections.has(name)){
@@ -173,7 +176,7 @@
           sections.set(name,group);
         }
         sections.get(name).append(line);
-        line.setAttribute('aria-label',[name,t,b].join(' · '));
+        line.setAttribute('aria-label',[name,t,verdictBadge.textContent,estimate==='midpoint'?'중위권(예상)':''].filter(Boolean).join(' · '));
       }
       return line;
     });
@@ -235,9 +238,15 @@
     }));
     $('schoolBand').replaceChildren();
     $('schools').replaceChildren(...visible.map(([i,b])=>{
-      const btn=el('button');btn.append(el('span',report.schools[i].school),badge(b));
+      const school=report.schools[i], grades=school.rows.filter(r=>r[4]!=='판정 자료 없음' &&
+        ($('field').value==='전체'||r[1]===$('field').value||r[1]==='이학·사회') &&
+        ($('track').value==='전체'||r[3].replace(/\s/g,'').startsWith($('track').value)));
+      const estimated=grades.length>0 && grades.every(r=>r[6]==='midpoint');
+      const schoolBadge=badge(b);
+      if(estimated)schoolBadge.append(' (예상)');
+      const btn=el('button');btn.append(el('span',school.school),schoolBadge);
       btn.setAttribute('aria-current',String(i===selected));
-      if(i===selected)$('schoolBand').append(badge(b));
+      if(i===selected)$('schoolBand').append(schoolBadge.cloneNode(true));
       btn.onclick=()=>{selected=i;$('department').value='';renderSchools();};return btn;
     }));
     if(!visible.length)$('schools').textContent='판정할 수 있는 학교가 없습니다.';
