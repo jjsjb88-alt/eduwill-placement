@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
-<title>서정빈 · 전 분원 배치상담</title><link rel="stylesheet" href="report-view.css"><script src="report-view.js" defer></script></head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://apis.google.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://trnasfer-2982c.firebaseapp.com https://apis.google.com; frame-src https://trnasfer-2982c.firebaseapp.com; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>서정빈 · 전 분원 배치상담</title><link rel="stylesheet" href="report-view.css"><script src="application-ui.js" defer></script><script src="report-view.js" defer></script></head>
 <body><header><div class="bar"><strong>에듀윌 편입</strong><span>서정빈 배치상담실</span><button id="lock" hidden>상담 종료 · 잠그기</button></div></header>
 <main>
 <section id="gate" class="gate"><p class="eyebrow">2027학년도 편입</p><h1>전 분원 배치상담</h1><p class="lead">서정빈 <span>·</span> 모의고사 성적 상담</p>
@@ -10,6 +10,8 @@
 <form id="search"><label for="name">학생 이름</label><div class="inputRow"><input id="name" autocomplete="off" placeholder="학생 이름 전체" maxlength="80" required><button class="primary">조회</button></div></form></div>
 <p id="status" role="status"></p><div id="choices"></div>
 <section id="report" hidden><div class="profile"><div><span id="branch"></span><h2 id="student"></h2></div><div class="metrics"><div>영어 백분위 <b id="english"></b></div><div>수학 백분위 <b id="math"></b></div></div></div>
+<div class="recordTools"><button id="recordAccount" type="button" class="quiet">지원 기록 연결</button><span>학과를 더블클릭해 지원을 확정하거나 취소할 수 있습니다.</span><span id="recordStatus" role="status"></span></div>
+<dialog id="applicationDialog" aria-labelledby="recordTitle"><h2 id="recordTitle"></h2><p id="recordMeta"></p><p id="recordMessage" role="status"></p><div class="recordActions"><button id="recordGoogle" class="primary" hidden>Google 계정으로 연결</button><button id="recordSave" class="primary" hidden>지원 확정</button><button id="recordLogout" class="quiet" hidden>계정 연결 해제</button><button id="recordClose" class="quiet" autofocus>닫기</button></div></dialog>
 <div class="filters"><label>계열 <select id="field"><option>전체</option><option>인문</option><option>자연</option></select></label><label>전형 <select id="track"><option value="전체">전체</option><option value="일반">일반편입</option><option value="학사">학사편입</option></select></label></div>
 <div class="board"><section><div class="sectionHead"><h2>학교</h2><span id="count"></span></div><nav id="bands" aria-label="학교 판정"></nav><div id="schools"></div></section>
 <section><div class="sectionHead"><h2 id="school">학과별 결과</h2><span id="schoolBand"></span></div><label class="deptSearch">학과 찾기 <input id="department" type="search" autocomplete="off"></label><div id="rows"></div></section></div>

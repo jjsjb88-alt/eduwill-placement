@@ -71,6 +71,7 @@
     return new Response(new Blob([clear]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
   }
   function resetReport(){
+    window.applicationRecords.select(null);
     report=null;selected=null;$('report').hidden=true;
     for(const id of ['student','branch','english','math','school','schoolBand','count','bands','rows','schools','exams','choices','status'])$(id).replaceChildren();
     $('department').value='';$('history').open=false;
@@ -84,6 +85,8 @@
     $('field').value=$('track').value=band='전체';
     $('history').hidden=!data.history.length;
     $('exams').replaceChildren(...data.history.map(r=>{const tr=el('tr');tr.append(...r.map(v=>el('td',v)));return tr;}));
+    const studentId=match.studentId || (access.version==='6653734d48f11192'?match.id:null);
+    window.applicationRecords.select(studentId);
     $('report').hidden=false;renderSchools();
   }
   function fail(token){if(token===serial)$('status').textContent='결과를 열지 못했습니다. 새로고침 후 다시 조회해주세요.';}
@@ -118,6 +121,7 @@
       const verdict=el('div',null,'verdict');
       verdict.append(badge(b));
       if(b==='도전' && overlap===true)verdict.append(el('small','최근 성적은 합격권에 닿음','overlap'));
+      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict);
       line.append(title,verdict);return line;
     }));
     if(!rows.length)$('rows').textContent='표시할 학과가 없습니다.';
