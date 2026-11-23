@@ -7,6 +7,12 @@
 <form id="lookup"><label for="query">학교 이름</label><div class="inputRow"><input id="query" placeholder="예: 가천대학교" required maxlength="80"><button class="primary">조회</button></div></form>
 <p id="feedback" role="status"></p>
 <section id="result" hidden><h2 id="schoolTitle"></h2><div class="links"><span id="pageLabel"></span><a id="official" target="_blank" rel="noopener noreferrer">입학처 원문 ↗</a><a id="excerptLink" target="_blank" rel="noopener noreferrer" hidden>모집표 크게 보기 ↗</a></div>
+<section id="trendPanel" hidden><h3>2026 → 2027 모집인원</h3>
+<table class="trendTable"><caption>전형별 모집인원 (명)</caption><thead><tr><th scope="col">전형</th><th scope="col">2026학년도</th><th scope="col">2027학년도</th><th scope="col">증감</th></tr></thead><tbody id="trackTrend"></tbody><tfoot id="trendTotal"></tfoot></table>
+<div class="trendFilters"><label>전형 <select id="trendTrack"></select></label><label>학과 찾기 <input id="trendQuery" type="search" placeholder="학과명" autocomplete="off"></label></div>
+<div class="trendScroll" tabindex="0" aria-label="학과별 모집인원"><table class="trendTable"><caption>학과별 모집인원 (명)</caption><thead><tr><th scope="col">모집단위</th><th scope="col">2026학년도</th><th scope="col">2027학년도</th><th scope="col">증감</th></tr></thead><tbody id="unitTrend"></tbody></table></div>
+<p class="trendNote">두 해 모집요강에 같은 이름과 전형으로 인원이 기재된 경우에 증감을 표시합니다. ‘미기재’는 해당 전형의 빈칸, ‘명칭 없음’은 그해 모집표에 같은 이름이 없는 경우입니다.</p>
+<div class="links"><a href="https://admission.gachon.ac.kr/upload/BBS0021/202511121304434GTSFQ.PDF#page=4" target="_blank" rel="noopener noreferrer">2026 모집표 원문 ↗</a><a href="https://admission.gachon.ac.kr/upload/BBS0021/20261123093522349J3D.PDF#page=4" target="_blank" rel="noopener noreferrer">2027 모집표 원문 ↗</a></div></section>
 <img id="original" hidden src="gachon-2027-p4.png" alt="2027학년도 가천대학교 편입학 모집요강 4쪽 모집인원표. 아래 학과별 표에서 같은 내용을 읽을 수 있습니다.">
 <iframe id="publishedPdf" hidden title="공개된 모집인원 원문 페이지"></iframe>
 <details id="textTable" hidden><summary>학과별 표로 보기</summary><div class="scroll"><table><thead id="labels"></thead><tbody id="seats"></tbody><tfoot id="totals"></tfoot></table></div>

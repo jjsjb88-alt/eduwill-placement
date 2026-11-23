@@ -118,12 +118,16 @@
     const rows=matching.filter(([,f])=>field==='전체'||field===f);
     $('quotaSchool').hidden=!school;
     if(school)$('quotaSchool').href='quotas/?school='+encodeURIComponent(school.school);
+    const compare=school?.school==='가천대학교';
+    $('quotaSchool').textContent=compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
+    const quotaLines=[];
     $('fieldBasis').hidden=!school||field==='전체';
     $('allFields').hidden=matching.length===rows.length;
     $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
     $('rows').replaceChildren(...rows.map(([name,f,c,t,b,overlap])=>{
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',name),el('small',[f,c,t].filter(Boolean).join(' · ')));
+      if(compare)quotaLines.push({name,track:t,meta:title.lastChild});
       const verdict=el('div',null,'verdict');
       verdict.append(badge(b));
       if(b==='도전' && overlap===true)verdict.append(el('small','최근 성적은 합격권에 닿음','overlap'));
@@ -131,7 +135,37 @@
       line.append(title,verdict);return line;
     }));
     if(!rows.length)$('rows').textContent='표시할 학과가 없습니다.';
+    if(compare){
+      const linkText=el('span',$('quotaSchool').textContent);
+      $('quotaSchool').replaceChildren(linkText);
+      showQuotaNumbers(quotaLines,linkText,track);
+    }
     $('rows').scrollTop=0;
+  }
+  async function showQuotaNumbers(lines,linkText,selectedTrack){
+    try{
+      const {gachonTrend,change}=await import('./quotas/trend.js');
+      const {names,before,after}=await gachonTrend();
+      if(!linkText.isConnected)return;
+      const tracks=selectedTrack==='전체'?['일반','학사']:[selectedTrack];
+      const counts=tracks.map(t=>{
+        const i=after.headers.indexOf(t);
+        return t+' '+before.totals[i]+' → '+after.totals[i]+'명';
+      });
+      linkText.textContent='학교 모집인원 (2026 → 2027) · '+counts.join(' · ')+' ↗';
+      for(const {name,track,meta} of lines){
+        const label=track.replace(/\s/g,'').replace(/편입(?:학)?$/,'');
+        const index=after.headers.indexOf(label);
+        if(index===-1)continue;
+        const pair=names.get(name.trim());
+        if(!pair){meta.append(' · 모집요강 학과명 대조 필요');continue;}
+        const col=index+1,a=pair.before?.[col],b=pair.after?.[col];
+        const prev=a!=null?a+'명':pair.before?'미기재':'명칭 없음';
+        const next=b!=null?b+'명':pair.after?'미기재':'명칭 없음';
+        const delta=change(a,b);
+        meta.append(' · 모집 2026 '+prev+' → 2027 '+next+(delta==='—'?'':' ('+delta+(a===b?'':'명')+')'));
+      }
+    }catch{ /* The school link still opens the original quotas. */ }
   }
   function renderSchools(){
     const view=report.views[$('field').value+'|'+$('track').value];

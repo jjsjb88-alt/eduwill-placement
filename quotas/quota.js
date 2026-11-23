@@ -1,4 +1,5 @@
 import {account,login,logout,quotaAdmin,quotaGuide,quotaExcerpt,publishQuota} from '../application-store.js';
+import {gachonTrend,change} from './trend.js';
 
 const $=id=>document.getElementById(id);
 const gachon='가천대학교', swu='서울여자대학교';
@@ -22,6 +23,7 @@ async function hash(bytes){
 }
 let lookupId=0, publicUrl='', previewUrl='', fileUrl='', editId=0, draft=null;
 function clearPublic(){
+  $('trendPanel').hidden=true;
   $('result').hidden=$('original').hidden=$('publishedPdf').hidden=$('excerptLink').hidden=$('textTable').hidden=true;
   $('publishedPdf').removeAttribute('src');$('textTable').open=false;$('feedback').replaceChildren();
   if(publicUrl)URL.revokeObjectURL(publicUrl);
@@ -53,6 +55,36 @@ async function showGachon(id){
   $('original').hidden=$('textTable').hidden=$('excerptLink').hidden=false;
   $('excerptLink').href='gachon-2027-p4.png';
   $('feedback').textContent='2026년 11월 23일 입학처 원문 대조본';
+  gachonTrend().then(data=>{
+    if(id===lookupId&&!$('original').hidden)showTrend(data);
+  }).catch(()=>{
+    if(id===lookupId&&!$('original').hidden)$('feedback').textContent+=' · 연도 비교표를 불러오지 못했습니다.';
+  });
+}
+function showTrend({before,after,names}){
+  const {headers}=after;
+  $('trackTrend').replaceChildren(...headers.map((label,i)=>tableRow([label,before.totals[i],after.totals[i],change(before.totals[i],after.totals[i])])));
+  const total=guide=>guide.totals.reduce((sum,n)=>sum+n,0);
+  $('trendTotal').replaceChildren(tableRow(['합계',total(before),total(after),change(total(before),total(after))]));
+  $('trendTrack').replaceChildren(...headers.map(label=>new Option(label,label)));
+  $('trendQuery').value='';
+  function filter(){
+    const col=headers.indexOf($('trendTrack').value)+1,query=$('trendQuery').value.trim();
+    const rows=[];
+    for(const [name,pair] of names){
+      const a=pair.before?.[col],b=pair.after?.[col];
+      if(!name.includes(query)||(a==null&&b==null))continue;
+      rows.push(tableRow([name,a??(pair.before?'미기재':'명칭 없음'),b??(pair.after?'미기재':'명칭 없음'),change(a,b)]));
+    }
+    if(!rows.length){
+      const empty=tableRow(['해당하는 모집단위가 없습니다.']);
+      empty.firstChild.colSpan=4;rows.push(empty);
+    }
+    $('unitTrend').replaceChildren(...rows);
+    $('unitTrend').closest('.trendScroll').scrollTop=0;
+  }
+  $('trendTrack').onchange=$('trendQuery').oninput=filter;
+  filter();$('trendPanel').hidden=false;
 }
 function noGuide(school,failed){
   $('feedback').textContent=failed?'등록 자료를 조회할 수 없습니다.':'이 학교의 2027학년도 모집표가 아직 등록되지 않았습니다.';
