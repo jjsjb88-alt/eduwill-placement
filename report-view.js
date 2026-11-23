@@ -146,13 +146,16 @@
     $('allFields').hidden=matching.length===rows.length;
     $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
     $('rows').replaceChildren(...rows.map(row=>{
-      const [name,f,c,t,b,overlap]=row;
+      const [name,f,c,t,b,marker]=row;
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',name),el('small',[f,c,t].filter(Boolean).join(' · ')));
       if(compare)quotaLines.push({name,track:t,meta:title.lastChild});
       const verdict=el('div',null,'verdict');
       verdict.append(badge(b));
-      if(b==='도전' && overlap===true)verdict.append(el('small','최근 성적은 합격권에 닿음','overlap'));
+      if(b==='도전' && marker==='peak3'){
+        line.classList.add('peakReach');
+        verdict.append(el('small','영어 상위 3회 기준 적정선 도달','peakNote'));
+      }
       window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reasons.get(row));
       line.append(title,verdict);return line;
     }));
