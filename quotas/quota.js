@@ -74,7 +74,7 @@ function showTrend({before,after,names}){
     for(const [name,pair] of names){
       const a=pair.before?.[col],b=pair.after?.[col];
       if(!name.includes(query)||(a==null&&b==null))continue;
-      rows.push(tableRow([name,a??(pair.before?'미기재':'명칭 없음'),b??(pair.after?'미기재':'명칭 없음'),change(a,b)]));
+      rows.push(tableRow([name,a??(pair.before?'미기재':'미선발'),b??(pair.after?'미기재':'미선발'),change(a,b)]));
     }
     if(!rows.length){
       const empty=tableRow(['해당하는 모집단위가 없습니다.']);

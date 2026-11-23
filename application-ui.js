@@ -60,10 +60,12 @@
       });
     }catch(err){if(token===epoch){busy=false;notice=message(err);refresh();}}
   }
-  function show(row){
+  function show(row,reason=''){
     target=row;desired=row?!records.has(key(row)):null;
     $('recordTitle').textContent=row?row.school+' · '+row.department:'상담 계정';
     $('recordMeta').textContent=row?[$('student').textContent,row.campus,row.field,row.track,row.verdict].filter(Boolean).join(' · '):'';
+    $('recordReason').hidden=!reason;
+    $('recordReason').textContent=reason?'판정 근거 · '+reason+' 비교 구간은 같은 학교·학과·전형의 과거 합격 자료를 바탕으로 정합니다. 구간 아래는 도전, 구간 안은 적정, 상한을 넘으면 안정입니다.':'';
     dialog.showModal();refresh();
     if(!ready)void attach();
   }
@@ -95,12 +97,12 @@
       detached();student=id;target=null;if(dialog.open)dialog.close();refresh();
       if(id && sessionStorage.getItem('placement-record-session'))void attach();
     },
-    bind(line,row,box){
+    bind(line,row,box,reason){
       if(!student)return;
       line.dataset.choice=key(row);line.tabIndex=0;line.setAttribute('role','button');
-      line.title='더블클릭 또는 Enter로 지원 기록 열기';
-      line.ondblclick=()=>show(row);
-      line.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show(row);}};
+      line.title='더블클릭 또는 Enter로 판정 근거와 지원 기록 열기';
+      line.ondblclick=()=>show(row,reason);
+      line.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show(row,reason);}};
       const mark=document.createElement('small');mark.className='confirmed';mark.textContent='지원 확정 ✓';
       mark.hidden=!ready||!records.has(key(row));box.append(mark);
     }

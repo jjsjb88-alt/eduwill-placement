@@ -75,6 +75,25 @@
     report=null;selected=null;$('report').hidden=true;
     for(const id of ['student','branch','english','math','school','schoolBand','count','bands','rows','schools','exams','choices','status'])$(id).replaceChildren();
     $('department').value='';$('history').open=false;
+    $('percentileBasis').open=false;$('basisRows').replaceChildren();$('basisNote').textContent='';
+  }
+  function renderBasis(data){
+    $('percentileBasis').hidden=!data.basis;
+    if(!data.basis)return;
+    $('basisNote').textContent=data.basis.note+' 백분위는 소수 첫째 자리까지 표시합니다.';
+    $('basisRows').replaceChildren(...['영어','수학'].map((subject,i)=>{
+      const group=el('section'), months=data.basis[subject];
+      group.append(el('h3',subject+' 백분위 '+data.metrics[i]));
+      if(!months.length){group.append(el('p','반영 조건을 충족한 시험이 없습니다.'));return group;}
+      const list=el('ul');
+      for(const m of months){
+        const exams=m.exams.map(([d,kind,p])=>Number(d.slice(2,4))+'/'+Number(d.slice(4))+' '+kind+' '+p.toFixed(1)).join(' · ');
+        list.append(el('li','20'+m.month.slice(0,2)+'년 '+Number(m.month.slice(2))+'월 대표값 '+m.value.toFixed(1)+' ('+exams+')'));
+      }
+      const method=['이 달의 대표값','두 달 대표값의 평균','세 달 대표값 중 가운데 값'][months.length-1];
+      group.append(list,el('p',method+'을 적용한 상담 백분위는 '+data.metrics[i]+'입니다.'));
+      return group;
+    }));
   }
   async function choose(match,token){
     const data=await loadFile(match.id,from64(match.key));
@@ -82,6 +101,7 @@
     report=data;$('choices').replaceChildren();$('status').textContent='';
     $('student').textContent=data.name;$('branch').textContent=data.branch+' · '+data.asof.replaceAll('-','.')+' 기준';
     [$('english').textContent,$('math').textContent]=data.metrics;
+    renderBasis(data);
     $('field').value=$('track').value=band='전체';
     $('history').hidden=!data.history.length;
     $('exams').replaceChildren(...data.history.map(r=>{const tr=el('tr');tr.append(...r.map(v=>el('td',v)));return tr;}));
@@ -116,6 +136,7 @@
     const q=normalize($('department').value), field=$('field').value, track=$('track').value;
     const matching=(school?.rows||[]).filter(([name,,,t])=>(track==='전체'||t.replace(/\s/g,'').startsWith(track))&&normalize(name).includes(q));
     const rows=matching.filter(([,f])=>field==='전체'||field===f);
+    const reasons=new Map((school?.rows||[]).map((row,i)=>[row,school.reasons?.[i]]));
     $('quotaSchool').hidden=!school;
     if(school)$('quotaSchool').href='quotas/?school='+encodeURIComponent(school.school);
     const compare=school?.school==='가천대학교';
@@ -124,14 +145,15 @@
     $('fieldBasis').hidden=!school||field==='전체';
     $('allFields').hidden=matching.length===rows.length;
     $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
-    $('rows').replaceChildren(...rows.map(([name,f,c,t,b,overlap])=>{
+    $('rows').replaceChildren(...rows.map(row=>{
+      const [name,f,c,t,b,overlap]=row;
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',name),el('small',[f,c,t].filter(Boolean).join(' · ')));
       if(compare)quotaLines.push({name,track:t,meta:title.lastChild});
       const verdict=el('div',null,'verdict');
       verdict.append(badge(b));
       if(b==='도전' && overlap===true)verdict.append(el('small','최근 성적은 합격권에 닿음','overlap'));
-      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict);
+      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reasons.get(row));
       line.append(title,verdict);return line;
     }));
     if(!rows.length)$('rows').textContent='표시할 학과가 없습니다.';
@@ -148,11 +170,13 @@
       const {names,before,after}=await gachonTrend();
       if(!linkText.isConnected)return;
       const tracks=selectedTrack==='전체'?['일반','학사']:[selectedTrack];
-      const counts=tracks.map(t=>{
+      linkText.replaceChildren('학교 모집인원 (2026 → 2027) · ');
+      tracks.forEach((t,n)=>{
         const i=after.headers.indexOf(t);
-        return t+' '+before.totals[i]+' → '+after.totals[i]+'명';
+        if(n)linkText.append(' · ');
+        linkText.append(t+' '+before.totals[i]+' → ',el('strong',after.totals[i]+'명'));
       });
-      linkText.textContent='학교 모집인원 (2026 → 2027) · '+counts.join(' · ')+' ↗';
+      linkText.append(' ↗');
       for(const {name,track,meta} of lines){
         const label=track.replace(/\s/g,'').replace(/편입(?:학)?$/,'');
         const index=after.headers.indexOf(label);
@@ -160,10 +184,10 @@
         const pair=names.get(name.trim());
         if(!pair){meta.append(' · 모집요강 학과명 대조 필요');continue;}
         const col=index+1,a=pair.before?.[col],b=pair.after?.[col];
-        const prev=a!=null?a+'명':pair.before?'미기재':'명칭 없음';
-        const next=b!=null?b+'명':pair.after?'미기재':'명칭 없음';
+        const prev=a!=null?a+'명':pair.before?'미기재':'미선발';
+        const next=b!=null?b+'명':pair.after?'미기재':'미선발';
         const delta=change(a,b);
-        meta.append(' · 모집 2026 '+prev+' → 2027 '+next+(delta==='—'?'':' ('+delta+(a===b?'':'명')+')'));
+        meta.append(' · 모집 2026 '+prev+' → 2027 ',b!=null?el('strong',next):next,delta==='—'?'':' ('+delta+(a===b?'':'명')+')');
       }
     }catch{ /* The school link still opens the original quotas. */ }
   }
