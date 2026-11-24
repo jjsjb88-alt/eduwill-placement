@@ -5,6 +5,13 @@
   const from64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
   const normalize = s => s.normalize('NFKC').replace(/\s/g,'').toLowerCase();
   const bands=['전체','적정','안정','도전'];
+  const kauName='한국항공대학교', airBusiness='항공·경영대학';
+  const isAirBusiness=(school,name)=>school===kauName&&name===airBusiness;
+  const matchesTrack=(track,row)=>track==='전체'||row[3].replace(/\s/g,'').startsWith(track);
+  function matchesField(field,school,[name,actual]){
+    if(isAirBusiness(school,name))actual='인문';
+    return field==='전체'||field===actual||actual==='이학·사회';
+  }
   let access, master, report, selected, band, serial=0;
   const el=(tag,text,cls)=>{
     const node=document.createElement(tag);
@@ -256,16 +263,19 @@
     const school=selected==null?null:report.schools[selected];
     $('school').textContent=school?.school||'학과별 결과';
     const q=normalize($('department').value), field=$('field').value, track=$('track').value;
-    const matching=(school?.rows||[]).filter(([name,,,t])=>(track==='전체'||t.replace(/\s/g,'').startsWith(track))&&
-      (normalize(name).includes(q)||school.majors?.[name]?.some(m=>normalize(m).includes(q))));
-    const rows=matching.filter(([,f])=>field==='전체'||field===f||f==='이학·사회');
+    const matching=(school?.rows||[]).filter(row=>{
+      const [name]=row;
+      return matchesTrack(track,row)&&(normalize(name).includes(q)||school.majors?.[name]?.some(m=>normalize(m).includes(q)));
+    });
+    const rows=matching.filter(row=>matchesField(field,school.school,row));
     const grouped=!!school?.catalogYear && track==='전체';
     const sections=new Map();
     if(school?.unitOrder)rows.sort((a,b)=>school.unitOrder.indexOf(a[0])-school.unitOrder.indexOf(b[0])||a[3].localeCompare(b[3],'ko'));
     const reasons=new Map((school?.rows||[]).map((row,i)=>[row,school.reasons?.[i]]));
     $('quotaSchool').hidden=!school;
     if(school)$('quotaSchool').href='quotas/?school='+encodeURIComponent(school.school);
-    const isKau=school?.school==='한국항공대학교';
+    const isKau=school?.school===kauName;
+    const compactKau=grouped&&isKau&&rows.filter(([name])=>name===airBusiness).length===2;
     const compare=school?.school==='가천대학교'||isKau;
     $('quotaSchool').textContent=school?.school==='수원대학교'?'2027 모집인원·전형일정 ↗':compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
     const quotaLines=[];
@@ -275,10 +285,12 @@
     $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
     const lines=rows.map(row=>{
       const [name,f,c,t,b,marker,estimate]=row;
+      const compact=compactKau&&name===airBusiness;
+      const fieldLabel=isAirBusiness(school.school,name)?'영어고사':f;
       const estimateLabel=estimate==='midpoint'?'중위권(예상)':estimate;
       const line=el('div',null,'dept'), title=el('div');
-      title.append(el('b',grouped?t+'편입':name),el('small',[f,c,grouped?'':t].filter(Boolean).join(' · ')));
-      if(compare)quotaLines.push({name,track:t,meta:title.lastChild});
+      title.append(el('b',grouped?t+'편입':name),el('small',compact?'':[fieldLabel,c,grouped?'':t].filter(Boolean).join(' · ')));
+      if(compare)quotaLines.push({name,track:t,compact,meta:title.lastChild});
       if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
       const verdictBadge=badge(b);
@@ -295,9 +307,10 @@
       line.append(title,verdict);
       if(grouped){
         if(!sections.has(name)){
-          const group=el('section',null,'unitGroup');
+          const group=el('section',null,compact?'unitGroup compactUnit':'unitGroup');
           group.append(el('h3',name));
           if(school.majors?.[name])group.append(el('small',school.majors[name].join(' · ')));
+          if(compact)group.append(el('small',[fieldLabel,c,school.catalogYear+' 공동 모집'].filter(Boolean).join(' · ')));
           sections.set(name,group);
         }
         sections.get(name).append(line);
@@ -329,11 +342,14 @@
       });
       linkText.append(' ↗');
       if(isKau){
-        for(const {name,track,meta} of lines){
+        for(const {name,track,meta,compact} of lines){
           const group=Object.entries(guide.majors).find(([,majors])=>majors.includes(name))?.[0];
           const unit=guide.rows.find(row=>row[0]===(group||name));
           const col=guide.headers.indexOf(track.replace(/편입(?:학)?$/,''));
-          if(unit && col>=0 && unit[col+1]!=null)meta.append(' · 2027 '+unit[0]+(guide.majors[unit[0]]?' 공동 모집 ':' '),el('strong',unit[col+1]+'명'));
+          if(unit && col>=0 && unit[col+1]!=null){
+            if(!compact)meta.append(' · 2027 '+unit[0]+(guide.majors[unit[0]]?' 공동 모집 ':' '));
+            meta.append(el('strong',unit[col+1]+'명'));
+          }
         }
         return;
       }
@@ -353,7 +369,24 @@
     }catch{ /* The school link still opens the original quotas. */ }
   }
   function renderSchools(){
-    const view=report.views[$('field').value+'|'+$('track').value];
+    const field=$('field').value, track=$('track').value;
+    let view=report.views[field+'|'+track];
+    if(field==='자연'){
+      // Older saved views include 항공·경영대학 in the school's natural-science verdict.
+      const kau=view.findIndex(([i])=>report.schools[i].school===kauName);
+      if(kau>=0){
+        const [id,previous]=view[kau];
+        const rows=report.schools[id].rows.filter(row=>matchesField(field,kauName,row)&&matchesTrack(track,row));
+        const order=['도전','적정','안정','판정 자료 없음'];
+        const graded=rows.map(row=>row[4]).filter(b=>b!==order[3]).sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+        const verdict=graded[Math.floor((graded.length-1)/2)]||order[3];
+        if(!rows.length||verdict!==previous){
+          view=view.slice();
+          view.splice(kau,1,...(rows.length?[[id,verdict]]:[]));
+          view.sort((a,b)=>order.indexOf(a[1])-order.indexOf(b[1]));
+        }
+      }
+    }
     const visible=view.filter(([,b])=>band==='전체'||b===band);
     if(!visible.some(([i])=>i===selected))selected=visible[0]?.[0]??null;
     $('count').textContent=visible.length+'개교';
@@ -364,8 +397,7 @@
     $('schoolBand').replaceChildren();
     $('schools').replaceChildren(...visible.map(([i,b])=>{
       const school=report.schools[i], grades=school.rows.filter(r=>r[4]!=='판정 자료 없음' &&
-        ($('field').value==='전체'||r[1]===$('field').value||r[1]==='이학·사회') &&
-        ($('track').value==='전체'||r[3].replace(/\s/g,'').startsWith($('track').value)));
+        matchesField(field,school.school,r) && matchesTrack(track,r));
       const estimated=grades.length>0 && grades.every(r=>r[6]);
       const schoolBadge=badge(b);
       if(estimated)schoolBadge.append(' (예상)');
