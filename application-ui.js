@@ -1,15 +1,15 @@
 'use strict';
 (() => {
-  const $=id=>document.getElementById(id), dialog=$('applicationDialog');
+  const $=id=>document.getElementById(id), dialog=$('applicationDialog'), retry=$('recordRetry');
   let student, epoch=0, store, user, stop, ready=false, busy=false, records=new Set(), target, desired, notice='';
   const key=r=>[r.school,r.campus,r.department,r.field,r.track].join('|');
-  let currentUnits=new Map();
+  let currentUnits=new Map(), waitingRegistration=false;
   function refresh(){
     for(const line of $('rows').querySelectorAll('.dept')){
       const mark=line.querySelector('.confirmed');
       if(mark)mark.hidden=!ready || !records.has(line.dataset.choice);
     }
-    $('recordAccount').textContent=ready?'연결된 상담 계정':'지원 기록 연결';
+    $('recordAccount').textContent=ready?'연결된 상담 계정':waitingRegistration?'상담자 등록 확인':'지원 기록 연결';
     $('recordStatus').textContent=notice;
     const previous=$('previousChoices');
     previous.replaceChildren();
@@ -23,11 +23,14 @@
     }
     $('previousApplications').hidden=!previous.childElementCount;
     if(!dialog.open)return;
-    $('recordMessage').textContent=notice || (ready && user?user.email:'');
+    $('recordMessage').textContent=waitingRegistration?
+      user.email+' · 관리자에게 이 이메일의 상담자 등록을 요청해 주세요. 등록 후 아래 버튼을 누르면 바로 확인할 수 있습니다.':
+      notice || (ready && user?user.email:'');
     $('recordGoogle').hidden=!store || !!user;
+    if(retry)retry.hidden=!user || ready || busy;
     $('recordLogout').hidden=!user;
     $('recordGoogle').disabled=$('recordLogout').disabled=busy;
-    $('recordSave').hidden=!target || !ready || (desired && ['판정 자료 없음','이전 지원 기록'].includes(target.verdict));
+    $('recordSave').hidden=!target || !ready || (desired && target.verdict==='이전 지원 기록');
     $('recordSave').disabled=busy;
     $('recordSave').textContent=desired?'지원 확정':'확정 취소';
     $('recordClose').disabled=busy && ready;
@@ -35,7 +38,7 @@
   function detached(){
     ++epoch;
     if(stop)stop();
-    stop=null;ready=false;busy=false;records=new Set();notice='';
+    stop=null;ready=false;busy=false;waitingRegistration=false;records=new Set();notice='';
   }
   function message(err){
     switch(err?.code){
@@ -59,7 +62,7 @@
       if(!user){busy=false;notice='등록된 업무용 Google 계정으로 연결해 주세요.';refresh();return;}
       const allowed=await store.authorized(user);
       if(token!==epoch)return;
-      if(!allowed){busy=false;notice='상담자로 등록된 Google 계정을 선택해 주세요.';refresh();return;}
+      if(!allowed){busy=false;waitingRegistration=true;notice='상담자 등록이 필요합니다.';refresh();return;}
       sessionStorage.setItem('placement-record-session','1');
       stop=store.subscribe(student,confirmed=>{
         if(token!==epoch)return;
@@ -75,7 +78,8 @@
   function show(row,reason='',estimated=false,showQuota){
     target=row;desired=row?!records.has(key(row)):null;
     $('recordTitle').textContent=row?row.school+' · '+row.department:'상담 계정';
-    $('recordMeta').textContent=row?[$('student').textContent,row.campus,row.field,row.track,row.verdict].filter(Boolean).join(' · '):'';
+    $('recordMeta').textContent=row?[$('student').textContent,row.campus,row.field,row.track,
+      row.verdict==='판정 자료 없음'?'판정 미산출':row.verdict].filter(Boolean).join(' · '):'';
     $('recordReason').hidden=!reason;
     $('recordReason').textContent=estimated||row?.verdict==='판정 자료 없음'?reason:
       reason?'판정 근거 · '+reason+' 비교 구간은 같은 학교·학과·전형의 과거 합격 자료를 바탕으로 정합니다. 구간 아래는 도전, 구간 안은 적정, 상한을 넘으면 안정입니다.':'';
@@ -85,6 +89,7 @@
     if(!ready)void attach();
   }
   $('recordGoogle').onclick=()=>attach(true);
+  if(retry)retry.onclick=()=>attach();
   $('recordLogout').onclick=async()=>{
     detached();const token=epoch;busy=true;refresh();
     try{await store.logout();sessionStorage.removeItem('placement-record-session');if(token===epoch){user=null;notice='업무 계정 연결을 해제했습니다.';}}
