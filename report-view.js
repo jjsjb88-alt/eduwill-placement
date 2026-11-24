@@ -95,9 +95,10 @@
       guide.href='quotas/?school='+encodeURIComponent(school.school);
       guide.target='_blank';guide.rel='noopener';currentLine.append(guide);
     }
+    root.replaceChildren(el('h3',row[7]?'비교 구간과 모집인원':'모집인원'),currentLine);
+    if(!row[7])return;
     const historic=el('div','과거 모집인원을 불러오는 중입니다…');
-    root.replaceChildren(el('h3','비교 구간과 모집인원'),currentLine,historic);
-    if(!row[7]){historic.textContent='비교 구간에 연결된 과거 표본이 없습니다.';return;}
+    root.append(historic);
     try{
       const units=await loadQuotaBasis();
       if(!historic.isConnected)return;
@@ -266,7 +267,7 @@
     if(school)$('quotaSchool').href='quotas/?school='+encodeURIComponent(school.school);
     const isKau=school?.school==='한국항공대학교';
     const compare=school?.school==='가천대학교'||isKau;
-    $('quotaSchool').textContent=compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
+    $('quotaSchool').textContent=school?.school==='수원대학교'?'2027 모집인원·전형일정 ↗':compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
     const quotaLines=[];
     $('fieldBasis').hidden=!school||(!school.catalogYear && field==='전체');
     $('fieldBasis').textContent=school?.catalogYear?'2027 모집요강의 일반·학사 선발 모집단위입니다. 인문·자연은 상담용 분류입니다.':'원자료에 계열이 없으면 과거 합격자의 수학 모의고사 응시 비율로 추정합니다.';
@@ -281,14 +282,15 @@
       if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
       const verdictBadge=badge(b);
-      if(estimateLabel && b==='판정 자료 없음')verdictBadge.textContent='성적 확인 필요';
+      if(b==='판정 자료 없음')verdictBadge.textContent=estimateLabel?'성적 확인 필요':'판정 미산출';
       verdict.append(verdictBadge);
       if(estimateLabel)verdict.append(el('small',estimateLabel));
       if(b==='도전' && marker==='peak3'){
         line.classList.add('peakReach');
         verdict.append(el('small','영어 상위 3회 기준 적정선 도달','peakNote'));
       }
-      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reasons.get(row),!!estimateLabel,
+      const reason=b==='판정 자료 없음'&&!estimateLabel?'':reasons.get(row);
+      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reason,!!estimateLabel,
         access.quotaBasis?root=>void renderQuotaBasis(root,school,row):undefined);
       line.append(title,verdict);
       if(grouped){

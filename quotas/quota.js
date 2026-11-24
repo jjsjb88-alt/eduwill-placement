@@ -9,9 +9,22 @@ const verified={
   [gachon]:{file:'gachon-2027',page:4,hash:gachonHash,source:gachonSource},
   [kau]:{file:'kau-2027',page:6,hash:'6b0b37bccec87047e6b3a388a9c60da95024a841023634d10bbbc4219b3a496a',source:'https://ibhak.kau.ac.kr/upload/GUIDES/20261123145318001.pdf'}
 };
+const schedules={
+  수원대학교:{source:'https://ipsi.suwon.ac.kr/board/notice/read/6342?nPage=1&st=%EC%84%A0%ED%96%89',rows:[
+    ['원서접수','2026. 12. 1.(화) 10:00 ~ 12. 4.(금) 18:00'],
+    ['고사장·시간 공지','고사 일주일 전 입학처에서 안내 예정'],
+    ['영어 필기·실기고사','2027. 1. 3.(일) · 세부 일정 추후 공지'],
+    ['서류제출 마감','2027. 1. 8.(금) · 우편 도착 기준'],
+    ['최초합격자 발표','2027. 2. 5.(금) 17:00 이전'],
+    ['최초합격자 등록','2027. 2. 5.(금) ~ 2. 11.(목) 10:00'],
+    ['충원합격자 발표·등록','2027. 2. 11.(목) ~ 2. 18.(목)'],
+    ['충원합격자 통보 마감','2027. 2. 18.(목) 18:00'],
+    ['최종 등록 마감','2027. 2. 19.(금)']
+  ]}
+};
 const notes=document.querySelector('#textTable p'), gachonNotes=notes.textContent;
 const swuSource='https://admission.swu.ac.kr/bbs/board.php?bo_table=flashpaper&sca=%ED%8E%B8%EC%9E%85%ED%95%99&sub_ck=1';
-const schoolName=s=>({가천대:gachon,서울여대:swu,항공대:kau,한국항공대:kau}[s] || s);
+const schoolName=s=>({가천대:gachon,서울여대:swu,항공대:kau,한국항공대:kau,수원대:'수원대학교'}[s] || s);
 function schoolValue(raw){
   const value=schoolName(raw.normalize('NFKC').trim().replace(/\s+/g,''));
   if(typeof value!=='string'||!value||value.length>80||/[\/\x00-\x1f]/.test(value)||/^\.\.?$/.test(value))throw Error('학교 이름을 확인해 주세요.');
@@ -121,10 +134,18 @@ function noGuide(school,failed){
 async function lookup(raw){
   const id=++lookupId;
   clearPublic();
+  $('schedule').hidden=true;
   let school;
   try{school=schoolValue(raw);}catch(e){$('feedback').textContent=e.message;return;}
   $('query').value=school;
   const url=new URL(location.href);url.searchParams.set('school',school);history.replaceState(null,'',url);
+  if(Object.hasOwn(schedules,school)){
+    const {source,rows}=schedules[school];
+    $('scheduleTitle').textContent=school+' 2027학년도 전형일정';
+    $('scheduleSource').href=officialUrl(source);
+    $('scheduleRows').replaceChildren(...rows.map(row=>tableRow(row)));
+    $('schedule').hidden=false;
+  }
   $('feedback').textContent='모집표 조회 중…';
   try{
     const builtIn=Object.hasOwn(verified,school)?verified[school]:null;
