@@ -110,17 +110,78 @@
     $('report').hidden=false;renderSchools();
   }
   function fail(token){if(token===serial)$('status').textContent='결과를 열지 못했습니다. 새로고침 후 다시 조회해주세요.';}
-  $('name').oninput=()=>{++serial;resetReport();};
-  $('search').onsubmit=async e=>{
-    e.preventDefault();
-    const name=normalize($('name').value), token=++serial;
+  const input=$('name'), suggestions=$('suggestions');
+  let pendingTimer, suggestionToken=0, lastLetter, lastBucket, composing=false;
+  function closeSuggestions(){
+    clearTimeout(pendingTimer);++suggestionToken;
+    suggestions.hidden=true;suggestions.replaceChildren();
+  }
+  async function fetchNames(letter){
+    return loadFile(hex(await sign('suggest-path:'+letter)),await sign('suggest-key:'+letter),true);
+  }
+  async function matchingNames(query){
+    const [letter]=query;
+    if(letter!==lastLetter){
+      lastLetter=letter;
+      lastBucket=fetchNames(letter);
+    }
+    let rows;
+    try{rows=await lastBucket;}catch(err){if(lastLetter===letter)lastLetter=null;throw err;}
+    return (rows||[]).filter(([name])=>normalize(name).includes(query)).sort(([a,,c],[b,,d])=>
+      Number(!normalize(a).startsWith(query))-Number(!normalize(b).startsWith(query))||a.localeCompare(b,'ko')||c.localeCompare(d,'ko'));
+  }
+  function showSuggestions(options){
+    suggestions.replaceChildren(...options.map(([name,index,branch,tail])=>{
+      const button=el('button');button.type='button';
+      button.append(el('b',name),el('small',[branch,tail&&'끝 '+tail].filter(Boolean).join(' · ')));
+      button.onclick=()=>{input.value=name;input.focus();lookup(index);};
+      return button;
+    }));
+    suggestions.hidden=!options.length;
+  }
+  input.oninput=()=>{
+    ++serial;resetReport();closeSuggestions();
+    const query=normalize(input.value),token=suggestionToken;
+    if(!access?.suggestions||!query)return;
+    pendingTimer=setTimeout(async()=>{
+      try{
+        const options=await matchingNames(query);
+        if(token===suggestionToken)showSuggestions(options);
+      }catch{if(token===suggestionToken)$('status').textContent='이름 추천을 불러오지 못했습니다. 이름 전체로 조회할 수 있습니다.';}
+    },100);
+  };
+  document.addEventListener('focusin',e=>{if(!$('search').contains(e.target))closeSuggestions();});
+  document.addEventListener('pointerdown',e=>{if(!$('search').contains(e.target))closeSuggestions();});
+  input.oncompositionstart=()=>{composing=true;};
+  input.oncompositionend=()=>{composing=false;};
+  $('search').onkeydown=e=>{
+    if(e.isComposing||e.keyCode===229)return;
+    if(e.key==='Escape'){closeSuggestions();input.focus();return;}
+    if(suggestions.hidden)return;
+    const option=e.target.closest('#suggestions button');
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();
+      (e.key==='ArrowDown'?(option?option.nextElementSibling||option:suggestions.firstElementChild):(option?.previousElementSibling||input)).focus();
+    }
+  };
+  $('search').onsubmit=e=>{e.preventDefault();if(!composing)lookup();};
+  async function lookup(index){
+    closeSuggestions();
+    const name=normalize(input.value), token=++serial, menuToken=suggestionToken;
     resetReport();if(!name)return;
     $('status').textContent='조회 중입니다…';
     try{
       const id=hex(await sign('path:'+name));
       const matches=await loadFile(id,await sign('name-key:'+name),true);
       if(token!==serial)return;
-      if(!matches){$('status').textContent='일치하는 학생이 없습니다. 이름 전체를 확인해주세요.';return;}
+      if(!matches){
+        const options=access.suggestions?await matchingNames(name):[];
+        if(token!==serial)return;
+        if(options.length===1){input.value=options[0][0];return lookup(options[0][1]);}
+        $('status').textContent=options.length?'학생을 선택해 주세요.':'일치하는 학생이 없습니다. 이름을 확인해주세요.';
+        if(menuToken===suggestionToken)showSuggestions(options);return;
+      }
+      if(Number.isInteger(index)){await choose(matches[index],token);return;}
       if(matches.length===1){await choose(matches[0],token);return;}
       $('status').textContent='같은 이름의 학생이 있습니다. 분원과 끝번호를 확인해주세요.';
       $('choices').replaceChildren(...matches.map(m=>{
@@ -129,7 +190,7 @@
         return b;
       }));
     }catch(err){if(token===serial)$('status').textContent=err.message.includes('갱신')?err.message:'조회하지 못했습니다. 잠시 후 다시 시도해주세요.';}
-  };
+  }
   function renderRows(){
     const school=selected==null?null:report.schools[selected];
     $('school').textContent=school?.school||'학과별 결과';

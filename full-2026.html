@@ -7,7 +7,7 @@
 <section id="gate" class="gate"><p class="eyebrow">2027학년도 편입</p><h1>전 분원 배치상담</h1><p class="lead">서정빈 <span>·</span> 모의고사 성적 상담</p>
 <form id="login"><label for="password">상담용 암호</label><div class="inputRow"><input id="password" type="password" autocomplete="current-password" required autofocus><button id="showPw" type="button" class="quiet" aria-label="암호 표시" aria-pressed="false">보기</button></div><button type="submit" class="primary">상담실 열기</button></form><p id="loginStatus" class="status" role="status"></p><a href="mini.html">기출 배치상담 ↗</a> · <a href="quotas/">대학별 모집인원 ↗</a></section>
 <section id="app" hidden><div class="intro"><div><p class="eyebrow">2027학년도 편입 · 모의고사만</p><h1>학생별 배치상담</h1></div>
-<form id="search"><label for="name">학생 이름</label><div class="inputRow"><input id="name" autocomplete="off" placeholder="학생 이름 전체" maxlength="80" required><button class="primary">조회</button></div></form></div>
+<form id="search"><label for="name">학생 이름</label><div class="inputRow"><input id="name" autocomplete="off" placeholder="학생 이름 입력" maxlength="80" aria-controls="suggestions" required><button class="primary">조회</button></div><div id="suggestions" role="group" aria-label="일치하는 학생" hidden></div></form></div>
 <p id="status" role="status"></p><div id="choices"></div>
 <section id="report" hidden><div class="profile"><div><span id="branch"></span><h2 id="student"></h2></div><div class="metrics"><div>영어 백분위 <b id="english"></b></div><div>수학 백분위 <b id="math"></b></div></div></div>
 <details id="percentileBasis"><summary>백분위 산출 근거</summary><p id="basisNote"></p><div id="basisRows"></div></details>
