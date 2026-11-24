@@ -154,17 +154,91 @@
     }
     return quotaBasis;
   }
+  function renderComparison(root,row){
+    const formatBound=n=>String(Number(n.toFixed(4)));
+    for(const {subject,low,high,value,reference} of row[8]||[]){
+      const hasRef=Number.isFinite(reference), weighted=subject.includes('%');
+      const points=[low,high,value,...(hasRef?[reference]:[])];
+      if(!points.every(n=>Number.isFinite(n)&&n>=-1e-9&&n<=100+1e-9)||high<low)continue;
+      const section=el('section',null,'comparison');
+      const title=el('div',null,'comparisonTitle');
+      const legend=row[6]?'추정 비교 구간':weighted?'가중 비교 구간':'과거 합격자 기준 구간';
+      title.append(el('h3',subject+' 백분위'),el('span',legend+'　'+formatBound(low)+'–'+formatBound(high),'rangeLegend'));
+      const chart=el('div',null,'rangeChart');
+      const labels=el('div',null,'rangeLabels'), plot=el('div',null,'rangePlot');
+      const min=Math.min(...points),max=Math.max(...points),pad=Math.max(3,(max-min)*.4);
+      const step=max-min>38?10:max-min<8?2:5;
+      const start=Math.max(0,Math.floor((min-pad)/step)*step),end=Math.min(100,Math.ceil((max+pad)/step)*step);
+      const at=n=>100*(n-start)/(end-start)+'%';
+      const zone=el('div',null,'rangeZone');
+      zone.style.left=at(low);zone.style.width=(high-low)*100/(end-start)+'%';plot.append(zone);
+      if((high-low)/(end-start)>.2){
+        for(const limit of [low,high]){
+          const bound=el('span',formatBound(limit),'rangeBound');bound.style.left=at(limit);
+          bound.setAttribute('aria-hidden','true');plot.append(bound);
+        }
+      }
+      function addPoint(label,sub,n,ref){
+        const caption=el('div',label);caption.append(el('small',sub));labels.append(caption);
+        const rail=el('div',null,'rangeRail');
+        const mark=el('span',null,'rangeMark'+(ref?' reference':''));
+        mark.style.left=at(n);
+        const valueLabel=el('b',n.toFixed(1));
+        if(n>(start+end)/2 || (!ref && n-start>(end-start)*.2))valueLabel.className='leftValue';
+        mark.append(valueLabel);rail.append(mark);plot.append(rail);
+      }
+      addPoint('최근 성적','기본 판정에 반영',value,false);
+      if(hasRef)addPoint(weighted?'영어 상위 3회 반영':'상위 3회 평균',weighted?'수학은 최근 성적':'참고 성적',reference,true);
+      const axis=el('div',null,'rangeAxis');
+      for(let i=start;i<=end;i+=step){const tick=el('span',String(i));tick.style.left=at(i);axis.append(tick);}
+      plot.append(axis);chart.append(labels,plot);
+      const explain=(label,n)=>{
+        const delta=n-low, dist=Math.abs(delta);
+        if(n>high+1e-9)return label+'은 구간 상한보다 '+formatBound(Number((n-high).toFixed(2)))+' 높습니다.';
+        if(dist<1e-9)return label+'은 구간 하한에 닿았습니다.';
+        const diff=dist<.05?'0.1 미만':dist.toFixed(1);
+        return label+'은 구간 하한보다 '+diff+(delta<0?' 낮습니다.':' 높아 구간 안에 있습니다.');
+      };
+      section.append(title,chart,el('p',[explain('최근 성적',value),...(hasRef?[explain(weighted?'영어 상위 3회 반영값':'상위 3회 평균',reference)]:[])].join(' '),'rangeNote'));
+      root.append(section);
+    }
+  }
+  async function showDepartmentTrend(currentLine,school,department,track){
+    if(school!=='가천대학교')return;
+    try{
+      const {gachonTrend,currentName,seatText}=await import('./quotas/trend.js');
+      const {names,after}=await gachonTrend();
+      const current=currentName(department.trim()),pair=names.get(current);
+      const col=after.headers.indexOf(track.replace(/\s/g,'').replace(/편입(?:학)?$/,''))+1;
+      if(!pair||!col||!currentLine.isConnected)return;
+      const cells=['before','after'].map((year,i)=>{
+        const n=pair[year]?.[col],text=n!=null?n+'명':seatText(pair,year,col);
+        const cell=el('span',null,'seatCell');
+        cell.append(el('small',(2026+i)+'학년도'),el(i?'strong':'span',text));
+        if(pair.oldName)cell.append(el('small',i?current:pair.oldName));
+        return cell;
+      });
+      currentLine.className='seatTrend';
+      currentLine.replaceChildren(cells[0],el('span','→','seatArrow'),cells[1]);
+      const prev=pair.before?.[col],next=pair.after?.[col];
+      if(pair.reorganized)currentLine.append(el('small','모집단위 개편','seatChange'));
+      else if(Number.isFinite(prev)&&Number.isFinite(next)){
+        const delta=next-prev;
+        currentLine.append(el('small',delta===0?'전년과 동일':Math.abs(delta)+'명 '+(delta>0?'증가':'감소'),'seatChange'));
+      }
+    }catch{ /* The current count and the guide link remain available. */ }
+  }
   async function renderQuotaBasis(root,school,row){
     const [department,,,track]=row;
     const current=school.seats?.[track+'|'+department];
     const currentLine=el('p','2027학년도 '+(school.majors?.[department]?'공동 모집인원 ':'모집인원 '));
     if(current!=null)currentLine.append(el('strong',current+'명'));
-    else{
-      const guide=el('a','모집요강에서 확인 ↗');
-      guide.href='quotas/?school='+encodeURIComponent(school.school);
-      guide.target='_blank';guide.rel='noopener';currentLine.append(guide);
-    }
-    root.replaceChildren(el('h3',row[7]?'비교 구간과 모집인원':'모집인원'),currentLine);
+    else currentLine.append('· 모집요강에서 확인');
+    const heading=el('div',null,'seatHeading'), source=el('a','모집요강 보기 ↗');
+    source.href='quotas/?school='+encodeURIComponent(school.school);source.target='_blank';source.rel='noopener';
+    heading.append(el('h3','모집인원'),source);
+    root.replaceChildren(heading,currentLine);
+    void showDepartmentTrend(currentLine,school.school,department,track);
     if(!row[7])return;
     const historic=el('div','과거 모집인원을 불러오는 중입니다…');
     root.append(historic);
@@ -367,8 +441,8 @@
       }
       let reason=b==='판정 자료 없음'&&!estimateLabel?'':reasons.get(row);
       if(reason&&estimateLabel&&school.school==='가천대학교')reason+=' 과거 원장에는 가천대 캠퍼스가 따로 표기되어 있지 않습니다.';
-      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reason,!!estimateLabel,
-        access.quotaBasis?root=>void renderQuotaBasis(root,school,row):undefined);
+      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reason,estimateLabel,
+        (root,chart)=>{renderComparison(chart,row);void renderQuotaBasis(root,school,row);});
       line.append(title,verdict);
       if(grouped){
         if(!sections.has(name)){

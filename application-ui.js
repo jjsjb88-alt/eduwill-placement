@@ -77,15 +77,22 @@
   }
   function show(row,reason='',estimated=false,showQuota){
     target=row;desired=row?!records.has(key(row)):null;
-    $('recordTitle').textContent=row?row.school+' · '+row.department:'상담 계정';
-    $('recordMeta').textContent=row?[$('student').textContent,row.campus,row.field,row.track,
-      row.verdict==='판정 자료 없음'?'판정 미산출':row.verdict].filter(Boolean).join(' · '):'';
-    $('recordReason').hidden=!reason;
+    dialog.classList.toggle('departmentDialog',!!row);
+    $('recordTitle').textContent=row?.department||'상담 계정';
+    $('recordSchool').textContent=row?[row.school,row.track && row.track.replace(/편입(?:학)?$/,'')+'편입'].filter(Boolean).join(' / '):'';
+    $('recordMeta').textContent=row?[$('student').textContent,row.campus,row.field,typeof estimated==='string'?estimated:''].filter(Boolean).join(' · '):'';
+    const grade=$('recordGrade');
+    grade.hidden=!row;
+    grade.querySelector('b').textContent=row?.verdict==='판정 자료 없음'?'판정 미산출':row?.verdict;
+    grade.dataset.band=row?.verdict||'';
+    const chart=$('recordComparison');chart.replaceChildren();
+    $('recordJustification').hidden=!reason;
     $('recordReason').textContent=estimated||row?.verdict==='판정 자료 없음'?reason:
       reason?'판정 근거 · '+reason+' 비교 구간은 같은 학교·학과·전형의 과거 합격 자료를 바탕으로 정합니다. 구간 아래는 도전, 구간 안은 적정, 상한을 넘으면 안정입니다.':'';
     const quota=$('recordQuotaBasis');
-    if(quota){quota.replaceChildren();quota.hidden=!showQuota;if(showQuota)showQuota(quota);}
-    dialog.showModal();refresh();
+    if(quota){quota.replaceChildren();quota.hidden=!showQuota;if(showQuota)showQuota(quota,chart);}
+    $('recordJustification').open=!!reason && !chart.childElementCount;
+    dialog.showModal();dialog.scrollTop=0;refresh();
     if(!ready)void attach();
   }
   $('recordGoogle').onclick=()=>attach(true);
