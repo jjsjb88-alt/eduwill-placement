@@ -77,6 +77,66 @@
     $('department').value='';$('history').open=false;
     $('percentileBasis').open=false;$('basisRows').replaceChildren();$('basisNote').textContent='';
   }
+  let quotaBasis;
+  function loadQuotaBasis(){
+    if(!quotaBasis){
+      quotaBasis=Promise.all([sign('quota-basis:path'),sign('quota-basis:key')])
+        .then(([id,key])=>loadFile(hex(id),key)).catch(error=>{quotaBasis=null;throw error;});
+    }
+    return quotaBasis;
+  }
+  async function renderQuotaBasis(root,school,row){
+    const [department,,,track]=row;
+    const current=school.seats?.[track+'|'+department];
+    const currentLine=el('p','2027학년도 '+(school.majors?.[department]?'공동 모집인원 ':'모집인원 '));
+    if(current!=null)currentLine.append(el('strong',current+'명'));
+    else{
+      const guide=el('a','모집요강에서 확인 ↗');
+      guide.href='quotas/?school='+encodeURIComponent(school.school);
+      guide.target='_blank';guide.rel='noopener';currentLine.append(guide);
+    }
+    const historic=el('div','과거 모집인원을 불러오는 중입니다…');
+    root.replaceChildren(el('h3','비교 구간과 모집인원'),currentLine,historic);
+    if(!row[7]){historic.textContent='비교 구간에 연결된 과거 표본이 없습니다.';return;}
+    try{
+      const units=await loadQuotaBasis();
+      if(!historic.isConnected)return;
+      const [indices,mask]=row[7];
+      const cohorts=indices.map(i=>{
+        const [key,entries]=units[i];
+        const [,type,name]=key.split('|');
+        return {name,type,entries:entries.filter(([, , ,e,m])=>((mask&1)&&e)||((mask&2)&&m))};
+      });
+      const entries=cohorts.flatMap(c=>c.entries);
+      const counts=entries.map(r=>r[2]).filter(n=>n!=null);
+      const low=Math.min(...counts),high=Math.max(...counts);
+      const range=low===high?String(low):low+'~'+high;
+      const overview=counts.length?'과거 모집인원 '+range+'명 · '+entries.length+'건 중 '+counts.length+'건 확인':'과거 모집인원 확인 필요';
+      const detail=el('details');detail.append(el('summary','연도별 모집인원과 합격자 기록'));
+      historic.replaceChildren(el('p',overview),detail);
+      if(cohorts.length>1)detail.append(el('p','개편 전 비교에 쓰인 모집단위별 인원입니다.'));
+      for(const {name,type,entries} of cohorts){
+        const table=el('table'), header=el('tr'), tbody=el('tbody');
+        table.append(el('caption',name+' · '+type+'편입'));
+        const headings=['학년도','모집인원',...(mask&1?['영어 기록']:[]),...(mask&2?['수학 기록']:[])];
+        header.append(...headings.map(h=>{const th=el('th',h);th.scope='col';return th;}));
+        const thead=el('thead');thead.append(header);table.append(thead,tbody);
+        for(const [year,campus,seats,english,math,source] of entries){
+          const tr=el('tr'), count=el('td');
+          if(source){const a=el('a',seats+'명');a.href=source;a.target='_blank';a.rel='noopener';count.append(a);}
+          else count.textContent=seats!=null?seats+'명':'확인 필요';
+          tr.append(el('td',year+(/\([^)]+\)$/.exec(campus)?.[0]||'')),count);
+          if(mask&1)tr.append(el('td',english+'건'));
+          if(mask&2)tr.append(el('td',math+'건'));
+          tbody.append(tr);
+        }
+        detail.append(table);
+      }
+      detail.append(el('p','합격자 기록은 비교 구간에 쓰인 과목별 모의고사 기록 수입니다. 모집인원은 상담 시 참고할 수 있으며 판정 구간은 성적 자료로 계산합니다.'));
+    }catch{
+      if(historic.isConnected)historic.textContent='과거 모집인원을 불러오지 못했습니다. 학과를 다시 열어주세요.';
+    }
+  }
   function renderBasis(data){
     $('percentileBasis').hidden=!data.basis;
     if(!data.basis)return;
@@ -214,20 +274,22 @@
     $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
     const lines=rows.map(row=>{
       const [name,f,c,t,b,marker,estimate]=row;
+      const estimateLabel=estimate==='midpoint'?'중위권(예상)':estimate;
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',grouped?t+'편입':name),el('small',[f,c,grouped?'':t].filter(Boolean).join(' · ')));
       if(compare)quotaLines.push({name,track:t,meta:title.lastChild});
       if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
       const verdictBadge=badge(b);
-      if(estimate==='midpoint' && b==='판정 자료 없음')verdictBadge.textContent='성적 확인 필요';
+      if(estimateLabel && b==='판정 자료 없음')verdictBadge.textContent='성적 확인 필요';
       verdict.append(verdictBadge);
-      if(estimate==='midpoint')verdict.append(el('small','중위권(예상)'));
+      if(estimateLabel)verdict.append(el('small',estimateLabel));
       if(b==='도전' && marker==='peak3'){
         line.classList.add('peakReach');
         verdict.append(el('small','영어 상위 3회 기준 적정선 도달','peakNote'));
       }
-      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reasons.get(row),estimate==='midpoint');
+      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reasons.get(row),!!estimateLabel,
+        access.quotaBasis?root=>void renderQuotaBasis(root,school,row):undefined);
       line.append(title,verdict);
       if(grouped){
         if(!sections.has(name)){
@@ -237,7 +299,7 @@
           sections.set(name,group);
         }
         sections.get(name).append(line);
-        line.setAttribute('aria-label',[name,t,verdictBadge.textContent,estimate==='midpoint'?'중위권(예상)':''].filter(Boolean).join(' · '));
+        line.setAttribute('aria-label',[name,t,verdictBadge.textContent,estimateLabel].filter(Boolean).join(' · '));
       }
       return line;
     });
@@ -302,7 +364,7 @@
       const school=report.schools[i], grades=school.rows.filter(r=>r[4]!=='판정 자료 없음' &&
         ($('field').value==='전체'||r[1]===$('field').value||r[1]==='이학·사회') &&
         ($('track').value==='전체'||r[3].replace(/\s/g,'').startsWith($('track').value)));
-      const estimated=grades.length>0 && grades.every(r=>r[6]==='midpoint');
+      const estimated=grades.length>0 && grades.every(r=>r[6]);
       const schoolBadge=badge(b);
       if(estimated)schoolBadge.append(' (예상)');
       const btn=el('button');btn.append(el('span',school.school),schoolBadge);

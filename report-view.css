@@ -9,4 +9,11 @@ header{background:#1c392f;color:#fff}.bar,main{max-width:1240px;margin:auto;padd
 .unitGroup h3{font-size:1rem;margin:14px 9px 2px}.unitGroup>small{display:block;margin:0 9px 4px;color:var(--sub)}.unitGroup .dept{padding-left:18px}.unitGroup .dept b{font-size:.85rem}#previousChoices{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 #percentileBasis{margin:8px 0 12px;font-size:.88rem}#percentileBasis summary{width:fit-content;cursor:pointer}#basisRows{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px}#basisRows h3{margin:8px 0}#basisRows ul{margin:0;padding-left:1.3em}#basisRows li{margin:.3em 0}#recordReason{max-width:42em;line-height:1.65}
 #search{position:relative}#suggestions{position:absolute;z-index:2;top:100%;left:0;right:0;max-height:17rem;overflow-y:auto;background:#fff;border:1px solid var(--line);box-shadow:0 5px 15px #203e3318}
+#recordQuotaBasis{border-top:1px solid var(--line);padding-top:.6rem}
+#recordQuotaBasis h3,#recordQuotaBasis p{margin:.45rem 0}
+#recordQuotaBasis details{font-size:.88rem}
+#recordQuotaBasis summary{cursor:pointer}
+#recordQuotaBasis table{width:100%;margin:.7rem 0;font-variant-numeric:tabular-nums}
+#recordQuotaBasis caption{text-align:left;font-weight:600;padding:.35rem 0}
+#recordQuotaBasis th,#recordQuotaBasis td{text-align:left;padding:.25rem .45rem}
 #suggestions button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:8px 12px;background:#fff;border:0;border-bottom:1px solid var(--line);text-align:left}#suggestions button:hover,#suggestions button:focus-visible{background:#e3e9de}#suggestions small{color:var(--sub)}
