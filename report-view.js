@@ -340,7 +340,8 @@
     const isKau=school?.school===kauName;
     const compactKau=grouped&&isKau&&rows.filter(([name])=>name===airBusiness).length===2;
     const compare=school?.school==='가천대학교'||isKau;
-    $('quotaSchool').textContent=school?.school==='수원대학교'?'2027 모집인원·전형일정 ↗':compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
+    const hasSchedule=['수원대학교','숙명여자대학교','건국대학교'].includes(school?.school);
+    $('quotaSchool').textContent=hasSchedule?'2027 모집인원·전형일정 ↗':compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
     const quotaLines=[];
     $('fieldBasis').hidden=!school||(!school.catalogYear && field==='전체');
     $('fieldBasis').textContent=school?.catalogYear?'2027 모집요강의 일반·학사 선발 모집단위입니다. 인문·자연은 상담용 분류입니다.':'원자료에 계열이 없으면 과거 합격자의 수학 모의고사 응시 비율로 추정합니다.';

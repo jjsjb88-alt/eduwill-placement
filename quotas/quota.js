@@ -2,12 +2,18 @@ import {account,login,logout,quotaAdmin,quotaGuide,quotaExcerpt,publishQuota} fr
 import {gachonTrend,change,seatText} from './trend.js';
 
 const $=id=>document.getElementById(id);
-const gachon='가천대학교', kau='한국항공대학교', swu='서울여자대학교';
+const gachon='가천대학교', kau='한국항공대학교', swu='서울여자대학교', sookmyung='숙명여자대학교', konkuk='건국대학교';
 const gachonSource='https://admission.gachon.ac.kr/upload/BBS0021/20261123093522349J3D.PDF';
 const gachonHash='47830bd8d1b0f40e152ea6d6e8df00daa13e319d36817f2fb4a802d6194be434';
 const verified={
   [gachon]:{file:'gachon-2027',page:4,hash:gachonHash,source:gachonSource},
-  [kau]:{file:'kau-2027',page:6,hash:'6b0b37bccec87047e6b3a388a9c60da95024a841023634d10bbbc4219b3a496a',source:'https://ibhak.kau.ac.kr/upload/GUIDES/20261123145318001.pdf'}
+  [kau]:{file:'kau-2027',page:6,hash:'6b0b37bccec87047e6b3a388a9c60da95024a841023634d10bbbc4219b3a496a',source:'https://ibhak.kau.ac.kr/upload/GUIDES/20261123145318001.pdf'},
+  [sookmyung]:{file:'sookmyung-2027',pages:[3],hash:'b70486bc5b9b25ef81d1249347caa643d626cf9bac539fd845852e01ca635bf0',
+    source:'https://admission.sookmyung.ac.kr/upload/BBS0021/20261124144821PWSYKA.PDF',
+    notice:'https://admission.sookmyung.ac.kr/admission/html/transfer/noticeView.asp?p_board_idx=54732'},
+  [konkuk]:{file:'konkuk-2027',pages:[3,4],hash:'0482e639501a521f59fb5be31561d9074e4600b5a37cf66a452b53731b3a45e5',
+    source:'https://admission.konkuk.ac.kr/bbs/admission/6282/1231335/download.do',
+    notice:'https://admission.konkuk.ac.kr/bbs/admission/6282/1212887/artclView.do'}
 };
 const schedules={
   수원대학교:{source:'https://ipsi.suwon.ac.kr/board/notice/read/6342?nPage=1&st=%EC%84%A0%ED%96%89',rows:[
@@ -24,7 +30,8 @@ const schedules={
 };
 const notes=document.querySelector('#textTable p'), gachonNotes=notes.textContent;
 const swuSource='https://admission.swu.ac.kr/bbs/board.php?bo_table=flashpaper&sca=%ED%8E%B8%EC%9E%85%ED%95%99&sub_ck=1';
-const schoolName=s=>({가천대:gachon,서울여대:swu,항공대:kau,한국항공대:kau,수원대:'수원대학교'}[s] || s);
+const schoolName=s=>({가천대:gachon,서울여대:swu,항공대:kau,한국항공대:kau,수원대:'수원대학교',
+  숙대:sookmyung,숙명대:sookmyung,숙명여대:sookmyung,건국대:konkuk,'건국대(서울)':konkuk,'건국대학교(서울)':konkuk}[s] || s);
 function schoolValue(raw){
   const value=schoolName(raw.normalize('NFKC').trim().replace(/\s+/g,''));
   if(typeof value!=='string'||!value||value.length>80||/[\/\x00-\x1f]/.test(value)||/^\.\.?$/.test(value))throw Error('학교 이름을 확인해 주세요.');
@@ -61,12 +68,19 @@ function tableRow(cells,heading=false){
   });
   return tr;
 }
+function showSchedule(school,source,rows){
+  $('scheduleTitle').textContent=school+' 2027학년도 전형일정';
+  $('scheduleSource').href=officialUrl(source);
+  $('scheduleRows').replaceChildren(...rows.map(row=>tableRow(row)));
+  $('schedule').hidden=false;
+}
 async function showVerified(id,school,guide){
   const res=await fetch(guide.file+'.json');
   if(!res.ok)throw Error('검증한 모집표를 열 수 없습니다.');
   const data=await res.json();
   if(id!==lookupId)return;
-  showSource(school,[guide.page],guide.source+'#page='+guide.page);
+  const pages=guide.pages??[guide.page];
+  showSource(school,pages,guide.source+'#page='+pages[0]);
   $('labels').replaceChildren(tableRow(['모집단위',...data.headers],true));
   $('seats').replaceChildren(...data.rows.map(row=>{
     const tr=tableRow(row), majors=data.majors?.[row[0]];
@@ -76,10 +90,18 @@ async function showVerified(id,school,guide){
     return tr;
   }));
   $('totals').replaceChildren(tableRow(['합계',...data.totals]));
+  $('feedback').textContent='입학처 모집요강 원문 대조본';
+  if(data.schedule){
+    showSchedule(school,guide.notice,data.schedule);
+    notes.textContent=data.notes;
+    $('publishedPdf').after($('textTable'));
+    $('textTable').hidden=false;
+    $('textTable').open=true;
+    return;
+  }
   $('original').hidden=$('textTable').hidden=$('excerptLink').hidden=false;
   $('original').src=$('excerptLink').href=guide.file+'-p'+guide.page+'.png';
   $('original').alt='2027학년도 '+school+' 모집요강 PDF '+guide.page+'쪽 모집인원표';
-  $('feedback').textContent='입학처 모집요강 원문 대조본';
   $('gachonComparison').hidden=school!==gachon;
   $('kauComparison').hidden=school!==kau;
   notes.textContent=school===gachon?gachonNotes:'단과대학 인원은 해당 세부전공 전체의 공동 모집인원입니다. 빈칸은 원문 미기재입니다. 전공 선택 범위와 항공운항학과 등 제외 조건은 아래 원문에서 확인할 수 있습니다.';
@@ -141,10 +163,7 @@ async function lookup(raw){
   const url=new URL(location.href);url.searchParams.set('school',school);history.replaceState(null,'',url);
   if(Object.hasOwn(schedules,school)){
     const {source,rows}=schedules[school];
-    $('scheduleTitle').textContent=school+' 2027학년도 전형일정';
-    $('scheduleSource').href=officialUrl(source);
-    $('scheduleRows').replaceChildren(...rows.map(row=>tableRow(row)));
-    $('schedule').hidden=false;
+    showSchedule(school,source,rows);
   }
   $('feedback').textContent='모집표 조회 중…';
   try{
@@ -154,7 +173,7 @@ async function lookup(raw){
     const guide=await quotaGuide(school);
     if(id!==lookupId)return;
     if(!guide){if(!builtIn)noGuide(school,false);return;}
-    if(builtIn&&guide.sourceHash===builtIn.hash&&guide.pages.join(',')===String(builtIn.page))return;
+    if(builtIn&&guide.sourceHash===builtIn.hash&&guide.pages.join(',')===(builtIn.pages??[builtIn.page]).join(','))return;
     const pdf=await quotaExcerpt(school,guide);
     if(await hash(await pdf.arrayBuffer())!==guide.excerptHash)throw Error('모집표 파일을 대조하지 못했습니다.');
     if(id!==lookupId)return;
