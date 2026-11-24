@@ -83,7 +83,69 @@
     for(const id of ['student','branch','english','math','school','schoolBand','count','bands','rows','schools','exams','choices','status'])$(id).replaceChildren();
     $('department').value='';$('history').open=false;
     $('percentileBasis').open=false;$('basisRows').replaceChildren();$('basisNote').textContent='';
+    $('archive').open=false;$('archive').hidden=true;$('archiveRows').replaceChildren();
+    $('archiveQuery').value='';$('archiveSource').value='raw';$('archiveTrack').value='전체';
   }
+  let historical, historicalLoad;
+  const schoolBase=s=>s.split('(')[0].trim();
+  function archiveRows(){
+    if(!report||!historical||!$('archive').open)return;
+    const {registry,links}=historical, school=$('archiveSchool').value, track=$('archiveTrack').value;
+    const linked=$('archiveSource').value==='links', q=normalize($('archiveQuery').value);
+    const frag=document.createDocumentFragment();
+    let count=0;
+    for(const [i,r] of (linked?links:registry).entries()){
+      const [s,c,t,name,data]=linked?r:[r[0],'',r[1],r[2],r[3]];
+      if(schoolBase(s)!==school||(track!=='전체'&&track!==t))continue;
+      const names=linked?Object.values(data).flatMap(d=>d[1].map(id=>registry[id][2])):[];
+      if(![name,...names].some(n=>normalize(n).includes(q)))continue;
+      const block=el('details'), title=el('summary');
+      title.textContent=[name,c||s.match(/\((.*)\)$/)?.[1],t+'편입'].filter(Boolean).join(' · ');
+      block.append(title);
+      if(linked&&!Object.keys(data).length){
+        const source=registry.filter(([raw,type,n])=>schoolBase(raw)===school&&type===t&&normalize(n)===normalize(name.replace(/[*★Ⓜ❖]+$/u,'')));
+        const counts=['영어','수학'].map(sub=>sub+' '+source.reduce((sum,r)=>sum+(r[3][sub]?.n||0),0)+'건');
+        block.append(el('p','원장에서 같은 대학·전형·학과명으로 찾은 기록은 '+counts.join(', ')+'입니다. 이 모집단위와 연결할 표본 또는 캠퍼스 근거가 부족해 과목별 구간을 산출하지 않았습니다.'));
+      }
+      for(const [subject,d] of Object.entries(data)){
+        const sourceRows=linked?d[1].map(id=>registry[id]):[r];
+        const n=sourceRows.reduce((total,src)=>total+src[3][subject].n,0);
+        const bounds=linked?d.slice(2):Number.isFinite(d.q1)?[d.q1,d.q3]:null;
+        const years=sourceRows.flatMap(src=>Object.keys(src[3][subject].years)).sort();
+        const verdict={'0':'도전','1':'적정','2':'안정'}[report.archiveBands[subject][(linked?registry.length:0)+i]];
+        const metric=report.metrics[subject==='영어'?0:1];
+        const line=el('p');
+        line.append(el('b',subject+' · '+(verdict?'과목 기준 '+verdict:'합격 기록')),document.createTextNode('　'+
+          [n+'건',years[0]+(years[0]===years.at(-1)?'':'~'+years.at(-1))+'학년도',
+           bounds?'합격자 구간 '+bounds.join('~'):'표본 3건 미만',metric==='—'?'학생 성적 미입력':'학생 '+metric].join(' · ')));
+        block.append(line);
+        if(linked){
+          block.append(el('p',d[0]+' · '+sourceRows.map(src=>src[2]+' '+src[3][subject].n+'건').join(', ')));
+          if(d[0].endsWith('계열 추정')||d[0].endsWith('유사 전공 추정'))block.append(el('p','비교 학과마다 합격자 중간 50% 구간을 구한 뒤 하한과 상한의 중앙값을 각각 사용했습니다.'));
+        }
+        else block.append(el('p',Object.entries(d.years).map(([year,n])=>year+'년 '+n+'건').join(' · ')));
+      }
+      frag.append(block);count++;
+    }
+    $('archiveCount').textContent=count+'개 학과·전형'+(linked?' · 2026학년도 명칭 기준':' · 원장 표기 기준');
+    $('archiveRows').replaceChildren(frag);
+  }
+  $('archive').ontoggle=async()=>{
+    if(!$('archive').open||!report)return;
+    const active=report;
+    try{
+      historicalLoad??=Promise.all([sign('historical:path'),sign('historical:key')]).then(([id,key])=>loadFile(hex(id),key));
+      historical=await historicalLoad;
+      if(report!==active||!$('archive').open)return;
+      const schools=[...new Set(historical.registry.map(r=>schoolBase(r[0])))].sort((a,b)=>a.localeCompare(b,'ko'));
+      const initial=report.schools[selected]?.school;
+      $('archiveSchool').replaceChildren(...schools.map(s=>new Option(s,s)));
+      if(schools.includes(initial))$('archiveSchool').value=initial;
+      archiveRows();
+    }catch{historicalLoad=null;$('archiveCount').textContent='자료를 불러오지 못했습니다. 닫았다 다시 열어주세요.';}
+  };
+  for(const id of ['archiveSchool','archiveSource','archiveTrack'])$(id).onchange=archiveRows;
+  $('archiveQuery').oninput=archiveRows;
   let quotaBasis;
   function loadQuotaBasis(){
     if(!quotaBasis){
@@ -170,6 +232,7 @@
     $('student').textContent=data.name;$('branch').textContent=data.branch+' · '+data.asof.replaceAll('-','.')+' 기준';
     [$('english').textContent,$('math').textContent]=data.metrics;
     renderBasis(data);
+    $('archive').hidden=!(access.historical&&data.archiveBands);
     $('field').value=$('track').value=band='전체';
     $('history').hidden=!data.history.length;
     $('exams').replaceChildren(...data.history.map(r=>{const tr=el('tr');tr.append(...r.map(v=>el('td',v)));return tr;}));
@@ -301,7 +364,8 @@
         line.classList.add('peakReach');
         verdict.append(el('small','영어 상위 3회 기준 적정선 도달','peakNote'));
       }
-      const reason=b==='판정 자료 없음'&&!estimateLabel?'':reasons.get(row);
+      let reason=b==='판정 자료 없음'&&!estimateLabel?'':reasons.get(row);
+      if(reason&&estimateLabel&&school.school==='가천대학교')reason+=' 과거 원장에는 가천대 캠퍼스가 따로 표기되어 있지 않습니다.';
       window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reason,!!estimateLabel,
         access.quotaBasis?root=>void renderQuotaBasis(root,school,row):undefined);
       line.append(title,verdict);
