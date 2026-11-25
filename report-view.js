@@ -389,22 +389,29 @@
     }));
   }
   async function choose(match,token){
-    const [data,{reconcileSchool}]=await Promise.all([loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-history')]);
+    const [data,{reconcileSchool,countsForSchool,schoolCutoffDistance}]=await Promise.all([loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-gap')]);
     if(token!==serial)return;
     const changed=new Set();
     data.schools.forEach((s,i)=>{if(reconcileSchool(s))changed.add(i);});
     const order=['도전','적정','안정'];
+    const display=['적정','안정','도전','판정 자료 없음'];
     for(const [key,view] of Object.entries(data.views)){
       const [field,track]=key.split('|'), revised=new Map(view);
-      for(const i of changed){
-        const s=data.schools[i], rows=s.rows.filter(r=>matchesField(field,s.school,r)&&matchesTrack(track,r));
-        if(!rows.length){revised.delete(i);continue;}
-        const grades=rows.filter(r=>!r[12]?.length&&!r[14]&&!(r[9]?.year===2027&&r[9].seats==null))
-          .map(r=>order.indexOf(r[4])).filter(n=>n>=0).sort((a,b)=>a-b);
-        revised.set(i,order[grades[Math.floor((grades.length-1)/2)]]||'판정 자료 없음');
-      }
-      const display=['적정','안정','도전','판정 자료 없음'];
-      data.views[key]=[...revised].sort((a,b)=>display.indexOf(a[1])-display.indexOf(b[1]));
+      const distances=new Map();
+      data.schools.forEach((s,i)=>{
+        const updateBand=changed.has(i)||(field==='자연'&&s.school===kauName&&revised.has(i));
+        if(!updateBand&&revised.get(i)!=='도전')return;
+        const rows=s.rows.filter(r=>matchesField(field,s.school,r)&&matchesTrack(track,r));
+        if(!rows.length){revised.delete(i);return;}
+        if(updateBand){
+          const grades=rows.filter(countsForSchool).map(r=>order.indexOf(r[4])).sort((a,b)=>a-b);
+          revised.set(i,order[grades[Math.floor((grades.length-1)/2)]]||'판정 자료 없음');
+        }
+        if(revised.get(i)==='도전')distances.set(i,schoolCutoffDistance(rows));
+      });
+      data.views[key]=[...revised].map(([i,b])=>[i,b,distances.get(i)??null]).sort((a,b)=>
+        display.indexOf(a[1])-display.indexOf(b[1])||(a[1]==='도전'?
+          (a[2]??Infinity)-(b[2]??Infinity)||data.schools[a[0]].school.localeCompare(data.schools[b[0]].school,'ko'):0));
     }
     report=data;$('choices').replaceChildren();$('status').textContent='';
     $('student').textContent=data.name;$('branch').textContent=data.branch+' · '+data.asof.replaceAll('-','.')+' 기준';
@@ -654,23 +661,7 @@
   }
   function renderSchools(){
     const field=$('field').value, track=$('track').value;
-    let view=report.views[field+'|'+track];
-    if(field==='자연'){
-      // Older saved views include 항공·경영대학 in the school's natural-science verdict.
-      const kau=view.findIndex(([i])=>report.schools[i].school===kauName);
-      if(kau>=0){
-        const [id,previous]=view[kau];
-        const rows=report.schools[id].rows.filter(row=>matchesField(field,kauName,row)&&matchesTrack(track,row));
-        const order=['도전','적정','안정','판정 자료 없음'];
-        const graded=rows.map(row=>row[4]).filter(b=>b!==order[3]).sort((a,b)=>order.indexOf(a)-order.indexOf(b));
-        const verdict=graded[Math.floor((graded.length-1)/2)]||order[3];
-        if(!rows.length||verdict!==previous){
-          view=view.slice();
-          view.splice(kau,1,...(rows.length?[[id,verdict]]:[]));
-          view.sort((a,b)=>order.indexOf(a[1])-order.indexOf(b[1]));
-        }
-      }
-    }
+    const view=report.views[field+'|'+track];
     const visible=view.filter(([,b])=>band==='전체'||b===band);
     if(!visible.some(([i])=>i===selected))selected=visible[0]?.[0]??null;
     $('count').textContent=visible.length+'개교';
@@ -679,13 +670,22 @@
       btn.onclick=()=>{band=b;$('department').value='';renderSchools();};return btn;
     }));
     $('schoolBand').replaceChildren();
-    $('schools').replaceChildren(...visible.map(([i,b])=>{
+    $('schools').dataset.filter=band;
+    $('gapNote').hidden=!visible.some(([,b])=>b==='도전');
+    $('schools').replaceChildren(...visible.map(([i,b,distance])=>{
       const school=report.schools[i], grades=school.rows.filter(r=>r[4]!=='판정 자료 없음' &&
         matchesField(field,school.school,r) && matchesTrack(track,r));
       const estimated=grades.length>0 && grades.every(r=>r[6]);
       const schoolBadge=badge(b);
       if(estimated)schoolBadge.append(' (예상)');
-      const btn=el('button');btn.append(el('span',school.school),schoolBadge);
+      const btn=el('button'), name=el('span',school.school,'schoolName');
+      btn.append(name);
+      if(b==='도전'){
+        const gap=distance==null?'차이 미산출':distance>0&&distance<.01?'적정까지 0.01점 미만':
+          '적정까지 '+distance.toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:2})+'점';
+        btn.append(el('small',gap,'schoolGap'));
+      }
+      btn.append(schoolBadge);
       btn.setAttribute('aria-current',String(i===selected));
       if(i===selected)$('schoolBand').append(schoolBadge.cloneNode(true));
       btn.onclick=()=>{selected=i;$('department').value='';renderSchools();};return btn;

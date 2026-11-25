@@ -2,6 +2,23 @@ import directory,{campuses,pendingNames} from './unit-names.js?v=20261125-units'
 import {excludedKonkukUnit} from './quotas/counseling-seats.js?v=20261125-history';
 
 const indices=new Map();
+export const countsForSchool=row=>!row[12]?.length&&!row[14]&&
+  !(row[9]?.year===2027&&row[9].seats==null)&&['도전','적정','안정'].includes(row[4]);
+
+export function schoolCutoffDistance(rows){
+  const margins=[];
+  for(const row of rows){
+    if(!countsForSchool(row))continue;
+    const points=row[8];
+    if(!points?.length||!points.every(p=>Number.isFinite(p.value)&&Number.isFinite(p.low)))continue;
+    // A separate-subject verdict reaches the cutoff only when both subjects reach it.
+    margins.push(Math.min(...points.map(p=>p.value-p.low)));
+  }
+  if(!margins.length)return null;
+  margins.sort((a,b)=>a-b);
+  return Math.max(0,-Number(margins[Math.floor((margins.length-1)/2)].toFixed(10)));
+}
+
 for(const [school,tracks] of Object.entries(directory)){
   const index=new Map();
   for(const [track,units] of Object.entries(tracks))for(const unit of units){
