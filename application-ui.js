@@ -15,8 +15,9 @@
     if(panelRow){
       const confirmed=ready && records.has(key(panelRow));
       $('panelSave').textContent=confirmed?'확정 취소':'지원 확정';
-      $('panelSave').disabled=busy;
-      $('panelStatus').textContent=panelMessage || (confirmed?'지원 확정됨':'');
+      const unavailable=panelLine?.dataset.notOffered==='1'&&!confirmed;
+      $('panelSave').disabled=busy||unavailable;
+      $('panelStatus').textContent=panelMessage || (confirmed?'지원 확정됨':unavailable?'2027학년도 해당 전형 미선발 · 과거 성적 참고용':'');
     }
     const previous=$('previousChoices');
     previous.replaceChildren();
@@ -89,14 +90,14 @@
     $('recordComparison').replaceChildren();$('recordQuotaBasis').replaceChildren();
     for(const id of ['recordSchool','recordMeta','recordTitle','recordReason','panelStatus'])$(id).textContent='';
   }
-  function preview(line,row,reason,estimated,showQuota){
+  function preview(line,row,reason,estimated,showQuota,displayCampus){
     if(panelLine===line)return;
     panelLine?.removeAttribute('aria-current');panelLine=line;panelRow=row;panelMessage='';
     line.setAttribute('aria-current','true');
     $('panelEmpty').hidden=true;$('panelContent').hidden=false;
     $('recordTitle').textContent=row.department;
     $('recordSchool').textContent=[row.school,row.track && row.track.replace(/편입(?:학)?$/,'')+'편입'].filter(Boolean).join(' / ');
-    $('recordMeta').textContent=[$('student').textContent,row.campus,row.field,estimated].filter(Boolean).join(' · ');
+    $('recordMeta').textContent=[$('student').textContent,displayCampus,row.field,estimated].filter(Boolean).join(' · ');
     const grade=$('recordGrade');
     grade.querySelector('b').textContent=row.verdict==='판정 자료 없음'?'판정 미산출':row.verdict;
     grade.dataset.band=row.verdict;
@@ -159,19 +160,22 @@
   window.applicationRecords={
     clearPreview,
     select(id,schools=[]){
-      currentUnits=new Map(schools.filter(s=>s.catalogYear).map(s=>[s.school,new Set(s.rows.map(([d,f,c,t])=>[s.school,c,d,f,t].join('|')))]));
+      currentUnits=new Map(schools.map(s=>[s.school,new Set(s.rows.map(r=>[s.school,r[9]?.recordCampus??r[2],r[0],r[1],r[3]].join('|')))]));
       clearPreview();$('previousApplications').open=false;
       detached();student=id;target=null;if(dialog.open)dialog.close();refresh();
       if(id && sessionStorage.getItem('placement-record-session'))void attach();
     },
-    bind(line,row,box,reason,estimated=false,showQuota){
+    bind(line,row,box,reason,estimated=false,showQuota,displayCampus=row.campus){
       if(!student)return;
       line.dataset.choice=key(row);line.tabIndex=0;line.setAttribute('role','button');
       line.title='클릭하면 판정 근거 보기 · 더블클릭하면 지원 확정 또는 취소';
       line.setAttribute('aria-controls','departmentPanel');
-      const open=()=>preview(line,row,reason,estimated,showQuota);
+      const open=()=>preview(line,row,reason,estimated,showQuota,displayCampus);
       line.onclick=open;
-      line.ondblclick=()=>toggle(row);
+      line.ondblclick=()=>{
+        if(line.dataset.notOffered==='1'&&!records.has(key(row))){open();refresh();return;}
+        toggle(row);
+      };
       line.onkeydown=e=>{
         if(e.key==='Enter'||e.key===' '){
           e.preventDefault();if(e.repeat)return;

@@ -47,7 +47,7 @@ const konkukNotOffered=new Set(['교육공학과','수학교육과','일어교�
   '융합인재학부/과학인재전공','영화·애니메이션학과'].map(normalizeUnit));
 const pending=new Map();
 
-function seatLookup(guide,school){
+export function seatLookup(guide,school){
   const units=new Map(guide.rows.map(row=>[normalizeUnit(row[0]),row]));
   const sookmyung=school==='sookmyung', aliases=sookmyung?sookmyungUnits:konkukUnits;
   const general=guide.headers.indexOf(sookmyung?'일반(정원 내)':'일반')+1;
@@ -68,7 +68,7 @@ function seatLookup(guide,school){
       const currentName=row[0]==='인공지능컴퓨터공학부 컴퓨터공학과'?'컴퓨터공학과':row[0];
       const unitLabel=alternatives?currentName+' ':'';
       const noSeats=sookmyung&&label==='일반'?'정원 내 미선발':'미선발';
-      return {label:row[col]==null?unitLabel+noSeats:unitLabel.trimEnd(),seats:row[col]};
+      return {unit:row[0],field:row[1],label:row[col]==null?unitLabel+noSeats:unitLabel.trimEnd(),seats:row[col]};
     });
   };
 }

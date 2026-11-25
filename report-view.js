@@ -237,14 +237,20 @@
   }
   async function renderQuotaBasis(root,school,row){
     const [department,,,track]=row;
-    const current=school.seats?.[track+'|'+department];
+    const unit=row[9];
+    const current=unit?.year===2027?unit.seats:school.seats?.[track+'|'+department];
     const currentLine=el('p','2027학년도 '+(school.majors?.[department]?'공동 모집인원 ':'모집인원 '));
     if(current!=null)currentLine.append(el('strong',current+'명'));
-    else currentLine.append('· 모집요강에서 확인');
+    else currentLine.append(unit?.year===2027?'미선발':'· 모집요강에서 확인');
     const heading=el('div',null,'seatHeading'), source=el('a','모집요강 보기 ↗');
     source.href='quotas/?school='+encodeURIComponent(school.school);source.target='_blank';source.rel='noopener';
     heading.append(el('h3','모집인원'),source);
     root.replaceChildren(heading,currentLine);
+    if(!school.catalogYear && unit?.year!==2027){
+      const label=unit?unit.year+'학년도에 확인한 모집단위':'과거 합격 자료의 모집단위';
+      currentLine.textContent=label+'입니다. 2027학년도 지원 전에는 올해 모집요강에서 명칭과 인원을 확인해 주세요.';
+    }
+    if(row[12]?.length)root.append(el('p','이름이 유사한 '+row[12].join('·')+'와 같은 모집단위인지 확인 중입니다. 아래 성적은 '+department+' 명칭으로 기록된 자료입니다.'));
     void showDepartmentTrend(currentLine,school.school,department,track);
     if(!row[7])return;
     const historic=el('div','과거 모집인원을 불러오는 중입니다…');
@@ -265,7 +271,11 @@
       const overview=counts.length?'과거 모집인원 '+range+'명 · '+entries.length+'건 중 '+counts.length+'건 확인':'과거 모집인원 확인 필요';
       const detail=el('details');detail.append(el('summary','연도별 모집인원과 합격자 기록'));
       historic.replaceChildren(el('p',overview),detail);
-      if(cohorts.length>1)detail.append(el('p','개편 전 비교에 쓰인 모집단위별 인원입니다.'));
+      if(row[10]?.length){
+        const totals=[...(mask&1?['영어 '+entries.reduce((n,r)=>n+(r[3]||0),0)+'건']:[]),...(mask&2?['수학 '+entries.reduce((n,r)=>n+(r[4]||0),0)+'건']:[])];
+        historic.prepend(el('p','개편 전 합격 기록 · '+row[10].join(' + ')+' · '+totals.join(' / ')));
+      }
+      if(cohorts.length>1)detail.append(el('p','개편 전 명칭별 이력입니다. 기록 수는 과목별이며 모집인원은 요강에서 확인한 수치입니다.'));
       for(const {name,type,entries} of cohorts){
         const table=el('table'), header=el('tr'), tbody=el('tbody');
         table.append(el('caption',name+' · '+type+'편입'));
@@ -282,6 +292,12 @@
           tbody.append(tr);
         }
         detail.append(table);
+      }
+      const other=(unit?.sources||[]).filter(n=>!cohorts.some(c=>c.name===n));
+      const related=units.filter(([k])=>other.some(n=>k===[school.school,track,n].join('|')));
+      if(related.length){
+        detail.append(el('p','함께 연결된 과거 모집단위입니다. 다음 성적은 위 판정 표본에 합산하지 않았습니다.'));
+        for(const [k,rs] of related)detail.append(el('p',k.split('|')[2]+' · '+[...new Set(rs.map(r=>r[0]))].sort().join('·')+'학년도'));
       }
       detail.append(el('p','합격자 기록은 비교 구간에 쓰인 과목별 모의고사 기록 수입니다. 모집인원은 상담 시 참고할 수 있으며 판정 구간은 성적 자료로 계산합니다.'));
     }catch{
@@ -307,8 +323,23 @@
     }));
   }
   async function choose(match,token){
-    const data=await loadFile(match.id,from64(match.key));
+    const [data,{reconcileSchool}]=await Promise.all([loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-units')]);
     if(token!==serial)return;
+    const changed=new Set();
+    data.schools.forEach((s,i)=>{if(reconcileSchool(s))changed.add(i);});
+    const order=['도전','적정','안정'];
+    for(const [key,view] of Object.entries(data.views)){
+      const [field,track]=key.split('|'), revised=new Map(view);
+      for(const i of changed){
+        const s=data.schools[i], rows=s.rows.filter(r=>matchesField(field,s.school,r)&&matchesTrack(track,r));
+        if(!rows.length){revised.delete(i);continue;}
+        const grades=rows.filter(r=>!r[12]?.length&&!(r[9]?.year===2027&&r[9].seats==null))
+          .map(r=>order.indexOf(r[4])).filter(n=>n>=0).sort((a,b)=>a-b);
+        revised.set(i,order[grades[Math.floor((grades.length-1)/2)]]||'판정 자료 없음');
+      }
+      const display=['적정','안정','도전','판정 자료 없음'];
+      data.views[key]=[...revised].sort((a,b)=>display.indexOf(a[1])-display.indexOf(b[1]));
+    }
     report=data;$('choices').replaceChildren();$('status').textContent='';
     $('student').textContent=data.name;$('branch').textContent=data.branch+' · '+data.asof.replaceAll('-','.')+' 기준';
     [$('english').textContent,$('math').textContent]=data.metrics;
@@ -410,11 +441,12 @@
     const q=normalize($('department').value), field=$('field').value, track=$('track').value;
     const matching=(school?.rows||[]).filter(row=>{
       const [name]=row;
-      return matchesTrack(track,row)&&(normalize(name).includes(q)||school.majors?.[name]?.some(m=>normalize(m).includes(q)));
+      return matchesTrack(track,row)&&(normalize(name).includes(q)||school.majors?.[name]?.some(m=>normalize(m).includes(q))||row[9]?.sources.some(m=>normalize(m).includes(q)));
     });
     const rows=matching.filter(row=>matchesField(field,school.school,row));
-    const grouped=!!school?.catalogYear && track==='전체';
+    const grouped=track==='전체';
     const sections=new Map();
+    const reviewSections=new Map(),reviewLines=[];
     if(school?.unitOrder)rows.sort((a,b)=>school.unitOrder.indexOf(a[0])-school.unitOrder.indexOf(b[0])||a[3].localeCompare(b[3],'ko'));
     const reasons=new Map((school?.rows||[]).map((row,i)=>[row,school.reasons?.[i]]));
     $('quotaSchool').hidden=!school;
@@ -432,12 +464,14 @@
     $('allFields').textContent='계열 전체로 보기 ('+matching.length+'건)';
     const lines=rows.map(row=>{
       const [name,f,c,t,b,marker,estimate]=row;
+      const campuses=row[11]||[];
+      const campus=c||campuses.join('·')+(campuses.length>1?' 원장 통합':'');
       const compact=compactKau&&name===airBusiness;
       const fieldLabel=isAirBusiness(school.school,name)?'영어고사':f;
       const estimateLabel=estimate==='midpoint'?'중위권(예상)':estimate;
       const line=el('div',null,'dept'), title=el('div');
-      title.append(el('b',grouped?t+'편입':name),el('small',compact?'':[fieldLabel,c,grouped?'':t].filter(Boolean).join(' · ')));
-      const otherKonkukCampus=seatSchool==='konkuk'&&((c&&c!=='서울')||knownKonkukGlocal.test(name));
+      title.append(el('b',grouped?t+'편입':name),el('small',compact?'':[fieldLabel,campus,grouped?'':t].filter(Boolean).join(' · ')));
+      const otherKonkukCampus=seatSchool==='konkuk'&&((campus&&campus!=='서울')||knownKonkukGlocal.test(name));
       if(compare||(seatSchool&&!otherKonkukCampus))quotaLines.push({name,track:t,compact,meta:title.lastChild});
       if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
@@ -451,25 +485,35 @@
         note.title='영어 상위 3회 성적을 반영하면 적정선에 닿습니다.';
         verdict.append(note);
       }
+      if(row[9]?.year===2027&&row[9].seats==null)line.dataset.notOffered='1';
       let reason=b==='판정 자료 없음'&&!estimateLabel?'':reasons.get(row);
       if(reason&&estimateLabel&&school.school==='가천대학교')reason+=' 과거 원장에는 가천대 캠퍼스가 따로 표기되어 있지 않습니다.';
-      window.applicationRecords.bind(line,{school:school.school,campus:c,department:name,field:f,track:t,verdict:b},verdict,reason,estimateLabel,
-        (root,chart)=>{renderComparison(chart,row);void renderQuotaBasis(root,school,row);});
+      window.applicationRecords.bind(line,{school:school.school,campus:row[9]?.recordCampus??c,department:name,field:f,track:t,verdict:b},verdict,reason,estimateLabel,
+        (root,chart)=>{renderComparison(chart,row);void renderQuotaBasis(root,school,row);},campus);
       line.append(title,verdict);
+      const targetSections=row[12]?.length?reviewSections:sections;
       if(grouped){
-        if(!sections.has(name)){
+        const unitKey=JSON.stringify([campus,name]);
+        if(!targetSections.has(unitKey)){
           const group=el('section',null,compact?'unitGroup compactUnit':'unitGroup');
           group.append(el('h3',name));
           if(school.majors?.[name])group.append(el('small',school.majors[name].join(' · ')));
           if(compact)group.append(el('small',[fieldLabel,c,school.catalogYear+' 공동 모집'].filter(Boolean).join(' · ')));
-          sections.set(name,group);
+          targetSections.set(unitKey,group);
         }
-        sections.get(name).append(line);
+        targetSections.get(unitKey).append(line);
         line.setAttribute('aria-label',[name,t,verdictBadge.textContent,estimateLabel].filter(Boolean).join(' · '));
       }
+      if(row[12]?.length)reviewLines.push(line);
       return line;
     });
-    $('rows').replaceChildren(...(grouped?sections.values():lines));
+    $('rows').replaceChildren(...(grouped?sections.values():lines.filter(line=>!reviewLines.includes(line))));
+    if(reviewLines.length){
+      const review=el('details'), summary=el('summary','현재 명칭 확인 중인 과거 자료 ('+reviewLines.length+'건)');
+      review.open=!!q;
+      review.append(summary,...(grouped?reviewSections.values():reviewLines));
+      $('rows').append(review);
+    }
     if(!rows.length)$('rows').textContent='표시할 학과가 없습니다.';
     if(compare){
       const linkText=el('span',$('quotaSchool').textContent);
@@ -487,8 +531,10 @@
         if(!meta.isConnected)continue;
         const seats=lookup(name,track);
         if(!seats)continue;
+        if(seats.every(item=>item.label.includes('미선발')||item.label.includes('재직자만')))
+          meta.closest('.dept').dataset.notOffered='1';
         const detail=el('span',null,'currentSeats');
-        detail.append(school==='konkuk'?' · 2027 서울 ':' · 2027 ');
+        detail.append(school==='konkuk'&&!meta.textContent.includes('서울')?' · 2027 서울 ':' · 2027 ');
         seats.forEach(({label,seats},i)=>{
           if(i)detail.append(' / ');
           if(label)detail.append(label+(seats==null?'':' '));
