@@ -1,4 +1,5 @@
 import directory,{campuses,pendingNames} from './unit-names.js?v=20261125-units';
+import {excludedKonkukUnit} from './quotas/counseling-seats.js?v=20261125-history';
 
 const indices=new Map();
 for(const [school,tracks] of Object.entries(directory)){
@@ -20,6 +21,8 @@ export function reconcileSchool(school){
   for(const row of school.rows){
     if(!row[2])row[11]=campuses[school.school]?.[row[3]+'|'+row[0]];
     row[12]=pendingNames[school.school]?.[row[3]+'|'+row[0]];
+    if(school.school==='건국대학교'&&['일반','학사'].includes(row[3])&&
+        (row[2]==='서울'||(row[11]?.length===1&&row[11][0]==='서울'))&&excludedKonkukUnit(row[0]))row[14]=true;
   }
   const pending=school.rows.some(r=>r[12]?.length);
   if(!index)return pending;

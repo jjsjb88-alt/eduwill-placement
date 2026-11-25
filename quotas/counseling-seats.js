@@ -46,6 +46,7 @@ const konkukUnits=new Map([
 const konkukNotOffered=new Set(['교육공학과','수학교육과','일어교육과','글로벌비즈니스학과','융합인재학과',
   '융합인재학부/과학인재전공','영화·애니메이션학과'].map(normalizeUnit));
 const pending=new Map();
+export const excludedKonkukUnit=name=>konkukNotOffered.has(normalizeUnit(name));
 
 export function seatLookup(guide,school){
   const units=new Map(guide.rows.map(row=>[normalizeUnit(row[0]),row]));

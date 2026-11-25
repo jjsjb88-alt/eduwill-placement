@@ -246,7 +246,8 @@
     source.href='quotas/?school='+encodeURIComponent(school.school);source.target='_blank';source.rel='noopener';
     heading.append(el('h3','모집인원'),source);
     root.replaceChildren(heading,currentLine);
-    if(!school.catalogYear && unit?.year!==2027){
+    if(row[14])currentLine.textContent='2027학년도 서울캠퍼스 해당 전형 미선발';
+    else if(!school.catalogYear && unit?.year!==2027){
       const label=unit?unit.year+'학년도에 확인한 모집단위':'과거 합격 자료의 모집단위';
       currentLine.textContent=label+'입니다. 2027학년도 지원 전에는 올해 모집요강에서 명칭과 인원을 확인해 주세요.';
     }
@@ -297,7 +298,16 @@
       const related=units.filter(([k])=>other.some(n=>k===[school.school,track,n].join('|')));
       if(related.length){
         detail.append(el('p','함께 연결된 과거 모집단위입니다. 다음 성적은 위 판정 표본에 합산하지 않았습니다.'));
-        for(const [k,rs] of related)detail.append(el('p',k.split('|')[2]+' · '+[...new Set(rs.map(r=>r[0]))].sort().join('·')+'학년도'));
+        for(const [k,rs] of related){
+          const source=el('details');
+          source.append(el('summary',k.split('|')[2]+' · '+[...new Set(rs.map(r=>r[0]))].sort().join('·')+'학년도'));
+          for(const [y,c,seats,en,ma,url] of rs){
+            const line=el('p',y+'학년도 '+c+' · '+(seats==null?'모집인원 미확인':'모집 '+seats+'명')+' · 영어 '+(en||0)+'건 / 수학 '+(ma||0)+'건');
+            if(url){const a=el('a',' 모집 근거 ↗');a.href=url;a.target='_blank';a.rel='noopener';line.append(a);}
+            source.append(line);
+          }
+          detail.append(source);
+        }
       }
       detail.append(el('p','합격자 기록은 비교 구간에 쓰인 과목별 모의고사 기록 수입니다. 모집인원은 상담 시 참고할 수 있으며 판정 구간은 성적 자료로 계산합니다.'));
     }catch{
@@ -323,7 +333,7 @@
     }));
   }
   async function choose(match,token){
-    const [data,{reconcileSchool}]=await Promise.all([loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-units')]);
+    const [data,{reconcileSchool}]=await Promise.all([loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-history')]);
     if(token!==serial)return;
     const changed=new Set();
     data.schools.forEach((s,i)=>{if(reconcileSchool(s))changed.add(i);});
@@ -333,7 +343,7 @@
       for(const i of changed){
         const s=data.schools[i], rows=s.rows.filter(r=>matchesField(field,s.school,r)&&matchesTrack(track,r));
         if(!rows.length){revised.delete(i);continue;}
-        const grades=rows.filter(r=>!r[12]?.length&&!(r[9]?.year===2027&&r[9].seats==null))
+        const grades=rows.filter(r=>!r[12]?.length&&!r[14]&&!(r[9]?.year===2027&&r[9].seats==null))
           .map(r=>order.indexOf(r[4])).filter(n=>n>=0).sort((a,b)=>a-b);
         revised.set(i,order[grades[Math.floor((grades.length-1)/2)]]||'판정 자료 없음');
       }
@@ -485,7 +495,7 @@
         note.title='영어 상위 3회 성적을 반영하면 적정선에 닿습니다.';
         verdict.append(note);
       }
-      if(row[9]?.year===2027&&row[9].seats==null)line.dataset.notOffered='1';
+      if(row[14]||(row[9]?.year===2027&&row[9].seats==null))line.dataset.notOffered='1';
       let reason=b==='판정 자료 없음'&&!estimateLabel?'':reasons.get(row);
       if(reason&&estimateLabel&&school.school==='가천대학교')reason+=' 과거 원장에는 가천대 캠퍼스가 따로 표기되어 있지 않습니다.';
       window.applicationRecords.bind(line,{school:school.school,campus:row[9]?.recordCampus??c,department:name,field:f,track:t,verdict:b},verdict,reason,estimateLabel,
