@@ -6,7 +6,7 @@
   const normalize = s => s.normalize('NFKC').replace(/\s/g,'').toLowerCase();
   const bands=['전체','적정','안정','도전'];
   const kauName='한국항공대학교', airBusiness='항공·경영대학';
-  const currentSeatSchools=new Map([['숙명여자대학교','sookmyung'],['건국대학교','konkuk']]);
+  const currentSeatSchools=new Map([['숙명여자대학교','sookmyung'],['건국대학교','konkuk'],['경기대학교','kyonggi']]);
   const knownKonkukGlocal=/^(ICT융합공학부|국제비즈니스학부|바이오융합과학부)\//;
   const isAirBusiness=(school,name)=>school===kauName&&name===airBusiness;
   const matchesTrack=(track,row)=>track==='전체'||row[3].replace(/\s/g,'').startsWith(track);
@@ -521,7 +521,7 @@
     const compactKau=grouped&&isKau&&rows.filter(([name])=>name===airBusiness).length===2;
     const compare=school?.school==='가천대학교'||isKau;
     const seatSchool=currentSeatSchools.get(school?.school);
-    const hasSchedule=['수원대학교','숙명여자대학교','건국대학교'].includes(school?.school);
+    const hasSchedule=seatSchool||school?.school==='수원대학교';
     $('quotaSchool').textContent=hasSchedule?'2027 모집인원·전형일정 ↗':compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
     const quotaLines=[];
     $('fieldBasis').hidden=!school||(!school.catalogYear && field==='전체');
@@ -538,7 +538,7 @@
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',grouped?t+'편입':name),el('small',compact?'':[fieldLabel,campus,grouped?'':t].filter(Boolean).join(' · ')));
       const otherKonkukCampus=seatSchool==='konkuk'&&((campus&&campus!=='서울')||knownKonkukGlocal.test(name));
-      if(compare||(seatSchool&&!otherKonkukCampus))quotaLines.push({name,track:t,compact,meta:title.lastChild});
+      if(compare||(seatSchool&&!otherKonkukCampus))quotaLines.push({name,track:t,campus,compact,meta:title.lastChild});
       if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
       const verdictBadge=badge(b);
@@ -591,16 +591,17 @@
   }
   async function showCurrentSeats(lines,school){
     try{
-      const {counselingSeats}=await import('./quotas/counseling-seats.js?v=20261125');
+      const {counselingSeats}=await import('./quotas/counseling-seats.js?v=20261125-kyonggi');
       const lookup=await counselingSeats(school);
-      for(const {name,track,meta} of lines){
+      for(const {name,track,campus,meta} of lines){
         if(!meta.isConnected)continue;
-        const seats=lookup(name,track);
+        const seats=lookup(name,track,campus);
         if(!seats)continue;
         if(seats.every(item=>item.label.includes('미선발')||item.label.includes('재직자만')))
           meta.closest('.dept').dataset.notOffered='1';
         const detail=el('span',null,'currentSeats');
-        detail.append(school==='konkuk'&&!meta.textContent.includes('서울')?' · 2027 서울 ':' · 2027 ');
+        const guideCampus=school==='konkuk'?'서울':seats[0].campus;
+        detail.append(' · 2027 '+(guideCampus&&!campus.includes(guideCampus)?guideCampus+' ':''));
         seats.forEach(({label,seats},i)=>{
           if(i)detail.append(' / ');
           if(label)detail.append(label+(seats==null?'':' '));
