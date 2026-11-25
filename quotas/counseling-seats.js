@@ -60,7 +60,21 @@ const kyonggiNames=new Map([
   ['건축학과','건축학과(5년제)'],['건축공학과','건축공학전공'],['신소재공학과','신소재공학전공'],
   ['화학공학과','화학공학전공'],['도시교통공학과','도시·교통공학전공'],
   ['호텔경영학과','호텔경영전공'],['외식·조리학과','외식·조리전공'],
-  ['컴퓨터공학부','AI컴퓨터공학부'],['전자공학과','전자공학부'],['미디어미디어영상학과','미디어영상학과']
+  ['컴퓨터공학부','AI컴퓨터공학부'],['전자공학과','전자공학부'],['미디어미디어영상학과','미디어영상학과'],
+  // 경기대 학칙(2023.2.15) 및 2023·2024 모집요강의 모집단위 개편표.
+  ['문예창작학과','국어국문학과'],['국제통상학과','무역학과'],
+  ['국제관계학과','정치외교학전공'],['국제학전공','정치외교학전공'],
+  ['국제산업정보학과','경영학전공'],['국제산업정보전공','경영학전공'],
+  ['경영정보학과','산업경영공학과'],['경영정보전공','산업경영공학과'],
+  ['교정보호학과','범죄교정심리학전공'],['교정보호전공','범죄교정심리학전공'],['범죄교정학전공','범죄교정심리학전공'],
+  ['관광개발학과','관광개발경영학과'],['관광개발전공','관광개발경영학과'],
+  ['관광경영학과','관광개발경영학과'],['관광경영전공','관광개발경영학과'],
+  ['관광이벤트학과','관광문화콘텐츠학과'],['관광이벤트전공','관광문화콘텐츠학과'],
+  ['건설시스템공학전공','사회에너지시스템공학과'],['토목공학과','사회에너지시스템공학과'],
+  ['환경에너지공학과','사회에너지시스템공학과'],['환경에너지공학전공','사회에너지시스템공학과'],
+  ['플랜트건축공학과','건축공학전공'],
+  ['컴퓨터과학과','AI컴퓨터공학부'],['스포츠산업경영전공','스포츠레저산업전공'],
+  ['스포츠경영학과','스포츠레저산업전공'],['레저스포츠학과','스포츠레저산업전공'],['레저스포츠전공','스포츠레저산업전공']
 ].map(([past,current])=>[normalizeUnit(past),current]));
 const kyonggiArtUnits=new Map([
   ['서양화,미술경영학과',['서양화전공','미술경영전공']],
@@ -79,31 +93,48 @@ function kyonggiSeatLookup(guide){
   function eligible(row,campus){
     return row&&(!campus||campus.includes(row[1]));
   }
-  return (name,track,campus)=>{
+  function describe(name,track,campus){
     const label=track.replace(/\s/g,'').replace(/편입(?:학)?$/,'');
     const column=label==='일반'?3:label==='학사'?4:0;
-    if(!column)return null;
     const shortName=name.slice(name.lastIndexOf('/')+1), key=normalizeUnit(shortName);
+    const entry=(row,display=row[0],shared=false)=>({unit:row[0],label:display,seats:row[column],campus:row[1],shared});
+    if(key==='전자물리학과'&&(!campus||campus.includes('수원')))
+      return {name:'전자물리학과',campus:'수원',entries:column?[{label:'미선발',campus:'수원'}]:[]};
     const art=kyonggiArtUnits.get(key);
     if(art){
-      const rows=art.map(major=>units.get(normalizeUnit(major))).filter(row=>eligible(row,campus)&&row[column]!=null);
-      if(rows.length)return rows.map(row=>({label:row[0],seats:row[column],campus:row[1]}));
+      const rows=art.map(major=>units.get(normalizeUnit(major))).filter(row=>eligible(row,campus));
+      if(!rows.length)return column?undefined:null;
+      const officialCampus=rows[0][1];
+      const entries=column?rows.filter(row=>row[column]!=null).map(row=>entry(row)):[];
+      if(column&&!entries.length)entries.push({label:'미선발',campus:officialCampus});
+      return {name:rows.map(row=>row[0]).join(' · '),campus:officialCampus,entries};
     }
     const n=kyonggiNames.get(key)||kyonggiNamesForGroup.get(key)||shortName;
     const unit=units.get(normalizeUnit(n)), group=groups.get(normalizeUnit(n));
     const parent=group&&units.get(normalizeUnit(group));
-    const found=eligible(unit,campus)||eligible(parent,campus);
-    if(!found)return [{label:'모집단위 확인 필요'}];
+    const found=eligible(unit,campus)?unit:eligible(parent,campus)?parent:null;
+    if(!found)return column?undefined:null;
+    const faculty=eligible(parent,campus)&&(parent[3]!=null||parent[4]!=null)?parent[0]:undefined;
+    const result={name:unit?.[0]||n,faculty,campus:found[1]};
+    if(!column)return {...result,entries:[]};
     if(eligible(unit,campus)&&unit[column]!=null){
-      const title=guide.majors[unit[0]]?unit[0]+' 공동':unit[0];
-      return [{label:normalizeUnit(name)===normalizeUnit(unit[0])&&!guide.majors[unit[0]]?'':title,seats:unit[column],campus:unit[1]}];
+      const shared=!!guide.majors[unit[0]];
+      const title=shared?unit[0]+' 공동':normalizeUnit(name)===normalizeUnit(unit[0])?'':unit[0];
+      return {...result,entries:[entry(unit,title,shared)]};
     }
     if(eligible(parent,campus)&&parent[column]!=null)
-      return [{label:parent[0]+' 공동',seats:parent[column],campus:parent[1]}];
+      return {...result,entries:[entry(parent,parent[0]+' 공동',true)]};
     const split=(guide.majors[unit?.[0]]||[]).map(major=>units.get(normalizeUnit(major))).filter(row=>eligible(row,campus)&&row[column]!=null);
-    if(split.length)return split.map(row=>({label:row[0],seats:row[column],campus:row[1]}));
-    return [{label:'미선발',campus:(unit||parent)[1]}];
-  };
+    const entries=split.length?split.map(row=>entry(row)):[{label:'미선발',campus:found[1]}];
+    return {...result,entries};
+  }
+  function lookup(name,track,campus){
+    const result=describe(name,track,campus);
+    if(result===null||result?.entries.length===0)return null;
+    return result?result.entries.map(({label,seats,campus})=>seats==null?{label,campus}:{label,seats,campus}):[{label:'모집단위 확인 필요'}];
+  }
+  lookup.describe=describe;
+  return lookup;
 }
 
 export function seatLookup(guide,school){
