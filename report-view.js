@@ -7,6 +7,7 @@
   const bands=['전체','적정','안정','도전'];
   const kauName='한국항공대학교', airBusiness='항공·경영대학';
   const currentSeatSchools=new Map([['숙명여자대학교','sookmyung'],['건국대학교','konkuk']]);
+  const knownKonkukGlocal=/^(ICT융합공학부|국제비즈니스학부|바이오융합과학부)\//;
   const isAirBusiness=(school,name)=>school===kauName&&name===airBusiness;
   const matchesTrack=(track,row)=>track==='전체'||row[3].replace(/\s/g,'').startsWith(track);
   function matchesField(field,school,[name,actual]){
@@ -435,7 +436,8 @@
       const estimateLabel=estimate==='midpoint'?'중위권(예상)':estimate;
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',grouped?t+'편입':name),el('small',compact?'':[fieldLabel,c,grouped?'':t].filter(Boolean).join(' · ')));
-      if(compare||seatSchool)quotaLines.push({name,track:t,compact,meta:title.lastChild});
+      const otherKonkukCampus=seatSchool==='konkuk'&&((c&&c!=='서울')||knownKonkukGlocal.test(name));
+      if(compare||(seatSchool&&!otherKonkukCampus))quotaLines.push({name,track:t,compact,meta:title.lastChild});
       if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
       const verdictBadge=badge(b);
@@ -485,7 +487,7 @@
         const seats=lookup(name,track);
         if(!seats)continue;
         const detail=el('span',null,'currentSeats');
-        detail.append(' · 2027 ');
+        detail.append(school==='konkuk'?' · 2027 서울 ':' · 2027 ');
         seats.forEach(({label,seats},i)=>{
           if(i)detail.append(' / ');
           if(label)detail.append(label+(seats==null?'':' '));
