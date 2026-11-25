@@ -16,7 +16,7 @@
     return field==='전체'||field===actual||actual==='이학·사회';
   }
   let access, master, report, selected, band, serial=0;
-  let kyonggiSeats, kyonggiSeatsPending;
+  let kyonggiSeats, kyonggiSeatsPending, examFitIndex;
   const el=(tag,text,cls)=>{
     const node=document.createElement(tag);
     if(text!=null)node.textContent=text;
@@ -80,6 +80,19 @@
     if(!response.ok)throw Error('자료를 불러오지 못했습니다. 다시 조회해주세요.');
     const clear=await decrypt(await aes(key),await response.arrayBuffer(),id);
     return new Response(new Blob([clear]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
+  }
+  async function loadExamFit(match){
+    if(!access.examFit)return;
+    try{
+      examFitIndex??=fetch('reports/'+access.version+'/exam-fit.json?v=20261125',{cache:'no-cache'}).then(response=>{
+        if(!response.ok)throw Error('궁합 자료를 열 수 없습니다.');
+        return response.json();
+      }).catch(error=>{examFitIndex=null;throw error;});
+      const encrypted=(await examFitIndex)[match.id];
+      if(!encrypted)return;
+      const clear=await decrypt(await aes(from64(match.key)),from64(encrypted),'exam-fit:'+match.id);
+      return JSON.parse(new TextDecoder().decode(clear));
+    }catch{ /* Existing counseling reports are still available. */ }
   }
   function resetReport(){
     window.applicationRecords.select(null);
@@ -392,6 +405,8 @@
   }
   async function choose(match,token){
     const [data,{reconcileSchool,countsForSchool,schoolCutoffDistance}]=await Promise.all([loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-gap')]);
+    if(token!==serial)return;
+    if(!data.examFit)data.examFit=await loadExamFit(match);
     if(token!==serial)return;
     const changed=new Set();
     data.schools.forEach((s,i)=>{if(reconcileSchool(s))changed.add(i);});
@@ -714,6 +729,10 @@
     const field=$('field').value, track=$('track').value;
     const view=report.views[field+'|'+track];
     const visible=view.filter(([,b])=>band==='전체'||b===band);
+    const fitting=new Set(report.examFit?.fields?.[field]);
+    const fits=([i,b])=>b!=='판정 자료 없음'&&fitting.has(report.schools[i].school);
+    $('fitNote').hidden=!visible.some(fits);
+    $('fitNote').textContent=report.examFit?'영어 기출 OMR '+report.examFit.attempts+'회와 대학별 출제 경향을 비교했습니다.':'';
     if(!visible.some(([i])=>i===selected))selected=visible[0]?.[0]??null;
     $('count').textContent=visible.length+'개교';
     $('bands').replaceChildren(...bands.map(b=>{
@@ -723,7 +742,8 @@
     $('schoolBand').replaceChildren();
     $('schools').dataset.filter=band;
     $('gapNote').hidden=!visible.some(([,b])=>b==='도전');
-    $('schools').replaceChildren(...visible.map(([i,b,distance])=>{
+    $('schools').replaceChildren(...visible.map(entry=>{
+      const [i,b,distance]=entry;
       const school=report.schools[i], grades=school.rows.filter(r=>r[4]!=='판정 자료 없음' &&
         matchesField(field,school.school,r) && matchesTrack(track,r));
       const estimated=grades.length>0 && grades.every(r=>r[6]);
@@ -731,6 +751,7 @@
       if(estimated)schoolBadge.append(' (예상)');
       const btn=el('button'), name=el('span',school.school,'schoolName');
       btn.append(name);
+      if(fits(entry))btn.append(el('small','기출 궁합 좋음','schoolFit'));
       if(b==='도전'){
         const gap=distance==null?'차이 미산출':distance>0&&distance<.01?'적정까지 0.01점 미만':
           '적정까지 '+distance.toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:2})+'점';

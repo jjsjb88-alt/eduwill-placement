@@ -53,6 +53,11 @@ main:has(#report:not([hidden])){max-width:1480px}
 #schools .schoolGap+.band{grid-column:1;grid-row:2;justify-self:start}
 #schools[data-filter="도전"] .schoolGap{grid-row:1}
 #schools[data-filter="도전"] .schoolGap+.band{display:none}
+#fitNote{margin:5px 0 7px;color:var(--sub);font-size:.78rem}
+#schools button:has(.schoolFit){display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px}
+#schools .schoolFit{grid-column:1;grid-row:2;justify-self:start;border:1px solid #a6bba1;border-radius:4px;padding:1px 5px;color:#30503c;font-size:.73rem;line-height:1.35}
+#schools .schoolFit+.band{grid-column:2;grid-row:1 / 3}
+#schools .schoolFit~.schoolGap+.band{grid-row:3}
 .criteria{border-top:1px solid var(--line);padding:12px 0 14px}
 .criteria h3{font-size:1rem;margin:0}
 .criteria p{font-size:.88rem;margin:.3rem 0 .65rem}
