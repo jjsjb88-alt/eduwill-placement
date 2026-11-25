@@ -24,6 +24,12 @@
     return node;
   };
   const badge=b=>el('span',b,'band '+b);
+  const challengeGaps=new WeakMap();
+  function gapText(distance){
+    if(distance==null)return '차이 미산출';
+    if(distance>0&&distance<.01)return '적정까지 0.01점 미만';
+    return '적정까지 '+distance.toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:2})+'점';
+  }
   async function decrypt(key, bytes, label){
     const raw=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
     return crypto.subtle.decrypt({name:'AES-GCM',iv:raw.subarray(0,12),additionalData:utf8(label)},key,raw.subarray(12));
@@ -409,7 +415,11 @@
     if(!data.examFit)data.examFit=await loadExamFit(match);
     if(token!==serial)return;
     const changed=new Set();
-    data.schools.forEach((s,i)=>{if(reconcileSchool(s))changed.add(i);});
+    data.schools.forEach((s,i)=>{
+      if(reconcileSchool(s))changed.add(i);
+      for(const row of s.rows)if(row[4]==='도전'&&countsForSchool(row))
+        challengeGaps.set(row,schoolCutoffDistance([row]));
+    });
     const order=['도전','적정','안정'];
     const display=['적정','안정','도전','판정 자료 없음'];
     for(const [key,view] of Object.entries(data.views)){
@@ -524,6 +534,34 @@
       }));
     }catch(err){if(token===serial)$('status').textContent=err.message.includes('갱신')?err.message:'조회하지 못했습니다. 잠시 후 다시 시도해주세요.';}
   }
+  function sortChallengeDepartments(list){
+    const gaps=new Map();
+    for(const label of list.querySelectorAll('.deptGap')){
+      const line=label.closest('.dept');
+      if(line.dataset.notOffered==='1'){
+        label.remove();line.removeAttribute('aria-description');continue;
+      }
+      const gap=Number(label.dataset.gap);
+      gaps.set(line,gap);
+      const group=line.parentElement;
+      if(group.classList.contains('unitGroup'))gaps.set(group,Math.min(gaps.get(group)??Infinity,gap));
+    }
+    // Keep other verdicts, group headings and quota details in their original slots.
+    function sortSlots(parent){
+      const children=[...parent.children], ranked=children.filter(node=>gaps.has(node));
+      const ordered=ranked.slice().sort((a,b)=>gaps.get(a)-gaps.get(b));
+      if(ordered.every((node,i)=>node===ranked[i]))return;
+      let i=0;
+      parent.replaceChildren(...children.map(node=>gaps.has(node)?ordered[i++]:node));
+    }
+    const groups=list.querySelectorAll(':scope > .unitGroup');
+    for(const group of groups)sortSlots(group);
+    sortSlots(list);
+    $('deptGapNote').hidden=!gaps.size;
+    $('deptGapNote').textContent=[...groups].some(group=>group.querySelectorAll('.deptGap').length>1)
+      ?'도전 학과는 적정 하한에 가까운 순입니다. 여러 전형·전공이 묶이면 가장 가까운 항목을 기준으로 정렬합니다.'
+      :'도전 학과는 적정 하한까지 남은 백분위 점수가 작은 순입니다.';
+  }
   function renderRows(){
     window.applicationRecords.clearPreview();
     const school=selected==null?null:report.schools[selected];
@@ -580,6 +618,12 @@
       const heading=placement?.faculty?t+'편입 · '+placement.name:grouped||placement?t+'편입':name;
       const formerName=placement&&normalize(placement.name)!==normalize(name)?'과거 '+name:'';
       title.append(el('b',heading),el('small',compact?'':[fieldLabel,campus,grouped||placement?'':t,formerName].filter(Boolean).join(' · ')));
+      if(challengeGaps.has(row)){
+        const gap=challengeGaps.get(row),label=el('span',gapText(gap),'deptGap');
+        label.dataset.gap=String(gap??Infinity);
+        title.firstChild.after(label);
+        line.setAttribute('aria-description',label.textContent);
+      }
       const otherKonkukCampus=seatSchool==='konkuk'&&((campus&&campus!=='서울')||knownKonkukGlocal.test(name));
       if(compare||(seatSchool&&!otherKonkukCampus&&!placement&&(seatSchool!=='kyonggi'||kyonggiSeats)))
         quotaLines.push({name,track:t,campus,compact,meta:title.lastChild});
@@ -654,6 +698,7 @@
       review.append(summary,...(grouped?reviewSections.values():reviewLines));
       $('rows').append(review);
     }
+    sortChallengeDepartments($('rows'));
     if(!rows.length)$('rows').textContent='표시할 학과가 없습니다.';
     if(compare){
       const linkText=el('span',$('quotaSchool').textContent);
@@ -666,12 +711,16 @@
   async function showCurrentSeats(lines,school){
     try{
       const lookup=await loadCounselingSeats(school);
+      let changed=false;
       for(const {name,track,campus,meta} of lines){
         if(!meta.isConnected)continue;
         const seats=lookup(name,track,campus);
         if(!seats)continue;
-        if(seats.every(item=>item.label.includes('미선발')||item.label.includes('재직자만')))
-          meta.closest('.dept').dataset.notOffered='1';
+        if(seats.every(item=>item.label.includes('미선발')||item.label.includes('재직자만'))){
+          const line=meta.closest('.dept');
+          line.dataset.notOffered='1';
+          if(line.querySelector('.deptGap'))changed=true;
+        }
         const detail=el('span',null,'currentSeats');
         const guideCampus=school==='konkuk'?'서울':seats[0].campus;
         detail.append(' · 2027 '+(guideCampus&&!campus.includes(guideCampus)?guideCampus+' ':''));
@@ -682,6 +731,7 @@
         });
         meta.append(detail);
       }
+      if(changed)sortChallengeDepartments($('rows'));
     }catch{ /* The school link still opens the published recruitment guide. */ }
   }
   async function showQuotaNumbers(lines,linkText,selectedTrack,isKau){
@@ -752,11 +802,7 @@
       const btn=el('button'), name=el('span',school.school,'schoolName');
       btn.append(name);
       if(fits(entry))btn.append(el('small','기출 궁합 좋음','schoolFit'));
-      if(b==='도전'){
-        const gap=distance==null?'차이 미산출':distance>0&&distance<.01?'적정까지 0.01점 미만':
-          '적정까지 '+distance.toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:2})+'점';
-        btn.append(el('small',gap,'schoolGap'));
-      }
+      if(b==='도전')btn.append(el('small',gapText(distance),'schoolGap'));
       btn.append(schoolBadge);
       btn.setAttribute('aria-current',String(i===selected));
       if(i===selected)$('schoolBand').append(schoolBadge.cloneNode(true));

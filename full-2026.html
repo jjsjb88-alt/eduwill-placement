@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://apis.google.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://trnasfer-2982c.firebaseapp.com https://apis.google.com; frame-src https://trnasfer-2982c.firebaseapp.com; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
-<title>서정빈 · 전 분원 배치상담</title><link rel="stylesheet" href="report-view.css?v=20261125-exam-fit"><script src="application-ui.js?v=20261125-subjects" defer></script><script src="report-view.js?v=20261125-exam-fit" defer></script></head>
+<title>서정빈 · 전 분원 배치상담</title><link rel="stylesheet" href="report-view.css?v=20261125-dept-gap"><script src="application-ui.js?v=20261125-subjects" defer></script><script src="report-view.js?v=20261125-dept-gap" defer></script></head>
 <body><header><div class="bar"><strong>에듀윌 편입</strong><span>서정빈 배치상담실</span><button id="lock" hidden>상담 종료 · 잠그기</button></div></header>
 <main>
 <section id="gate" class="gate"><p class="eyebrow">2027학년도 편입</p><h1>전 분원 배치상담</h1><p class="lead">서정빈 <span>·</span> 모의고사 성적 상담</p>
@@ -22,7 +22,7 @@
 <p id="recordMessage" role="status"></p><div class="recordActions"><button id="recordGoogle" class="primary" hidden>Google 계정으로 연결</button><button id="recordRetry" class="primary" hidden>등록 다시 확인</button><button id="recordSave" class="primary" hidden>지원 확정</button><button id="recordLogout" class="quiet" hidden>계정 연결 해제</button><button id="recordClose" class="quiet" autofocus>닫기</button></div></dialog>
 <div class="filters"><label>추정 계열 <select id="field"><option>전체</option><option>인문</option><option>자연</option></select></label><label>전형 <select id="track"><option value="전체">전체</option><option value="일반">일반편입</option><option value="학사">학사편입</option></select></label></div>
 <div class="board"><section><div class="sectionHead"><h2>학교</h2><span id="count"></span></div><nav id="bands" aria-label="학교 판정"></nav><p id="gapNote" hidden>도전 학교는 적정 하한까지 남은 백분위 점수가 작은 순입니다. 선택한 계열·전형의 학과별 차이를 학교 중앙값으로 표시합니다.</p><p id="fitNote" hidden></p><div id="schools"></div></section>
-<section><div class="sectionHead"><h2 id="school">학과별 결과</h2><span id="schoolBand"></span></div><div class="schoolSources"><a id="quotaSchool" target="_blank" rel="noopener" hidden>2027 모집인원 ↗</a><button id="allFields" type="button" class="quiet" hidden></button></div><small id="fieldBasis" hidden>원자료에 계열이 없으면 과거 합격자의 수학 모의고사 응시 비율로 추정합니다.</small><label class="deptSearch">학과 찾기 <input id="department" type="search" autocomplete="off"></label><div id="rows"></div></section>
+<section><div class="sectionHead"><h2 id="school">학과별 결과</h2><span id="schoolBand"></span></div><div class="schoolSources"><a id="quotaSchool" target="_blank" rel="noopener" hidden>2027 모집인원 ↗</a><button id="allFields" type="button" class="quiet" hidden></button></div><small id="fieldBasis" hidden>원자료에 계열이 없으면 과거 합격자의 수학 모의고사 응시 비율로 추정합니다.</small><label class="deptSearch">학과 찾기 <input id="department" type="search" autocomplete="off"></label><p id="deptGapNote" hidden></p><div id="rows"></div></section>
 <aside id="departmentPanel" aria-label="학과 상세">
 <div id="panelEmpty"><h2>학과 상세</h2><p>학과를 선택하면 성적 구간과 모집인원을 볼 수 있습니다.</p></div>
 <div id="panelContent" hidden>
