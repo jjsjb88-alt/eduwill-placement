@@ -48,8 +48,11 @@ header{background:#1c392f;color:#fff}.bar,main{max-width:1240px;margin:auto;padd
 .rangeMark{position:absolute;top:50%;width:11px;height:11px;border:2px solid currentColor;border-radius:50%;background:currentColor;transform:translate(-50%,-50%);color:#284c39}
 .departmentDialog:has(#recordGrade[data-band=도전]) .rangeMark:not(.reference){color:#975438}
 .rangeMark.reference{background:#fcfbf6;color:#35613e}
-.rangeMark b{position:absolute;top:50%;left:13px;transform:translateY(-50%);font:600 19px Georgia,serif;background:#fcfbf6;padding:0 3px}
-.rangeMark b.leftValue{left:auto;right:13px}
+.rangeMark .pointText{position:absolute;top:50%;left:13px;transform:translateY(-50%);display:grid;justify-items:start;white-space:nowrap;line-height:1.1}
+.rangeMark .leftValue{left:auto;right:13px;justify-items:end}
+.pointText b,.pointText small{background:#fcfbf6;padding:0 3px}
+.rangeMark b{font:600 19px Georgia,serif}
+.pointText small{font-size:.72rem;font-weight:500;color:#43564b}
 .rangeAxis{position:relative;height:25px;border-top:1px solid #b9c4b6}
 .rangeAxis span{position:absolute;top:4px;transform:translateX(-50%);font:12px Georgia,serif;color:#5c685f}
 .rangeAxis span:before{content:'';position:absolute;top:-5px;left:50%;width:1px;height:3px;background:#a5b19f}

@@ -6,6 +6,7 @@
   const normalize = s => s.normalize('NFKC').replace(/\s/g,'').toLowerCase();
   const bands=['전체','적정','안정','도전'];
   const kauName='한국항공대학교', airBusiness='항공·경영대학';
+  const currentSeatSchools=new Map([['숙명여자대학교','sookmyung'],['건국대학교','konkuk']]);
   const isAirBusiness=(school,name)=>school===kauName&&name===airBusiness;
   const matchesTrack=(track,row)=>track==='전체'||row[3].replace(/\s/g,'').startsWith(track);
   function matchesField(field,school,[name,actual]){
@@ -179,13 +180,18 @@
         }
       }
       function addPoint(label,sub,n,ref){
-        const caption=el('div',label);caption.append(el('small',sub));labels.append(caption);
+        const caption=el('div',ref?'참고':'기본 판정');
+        if(ref && weighted)caption.append(el('small',sub));
+        labels.append(caption);
         const rail=el('div',null,'rangeRail');
         const mark=el('span',null,'rangeMark'+(ref?' reference':''));
         mark.style.left=at(n);
-        const valueLabel=el('b',n.toFixed(1));
-        if(n>(start+end)/2 || (!ref && n-start>(end-start)*.2))valueLabel.className='leftValue';
-        mark.append(valueLabel);rail.append(mark);plot.append(rail);
+        mark.title=ref?(weighted?'영어 상위 3회 평균과 최근 수학 성적에 이 학과의 반영 비율을 적용한 참고값입니다.':'영어 백분위가 가장 높았던 세 시험의 평균입니다.'):
+          '최근 응시한 최대 세 달의 월별 대표 성적으로 계산한 기본 판정 백분위입니다.';
+        const pointText=el('span',null,'pointText');
+        if(n>(start+end)/2 || (!ref && n<low && (n-start)/(end-start)>.2))pointText.classList.add('leftValue');
+        pointText.append(el('b',n.toFixed(1)),el('small',label));
+        mark.append(pointText);rail.append(mark);plot.append(rail);
       }
       addPoint('최근 성적','기본 판정에 반영',value,false);
       if(hasRef)addPoint(weighted?'영어 상위 3회 반영':'상위 3회 평균',weighted?'수학은 최근 성적':'참고 성적',reference,true);
@@ -414,6 +420,7 @@
     const isKau=school?.school===kauName;
     const compactKau=grouped&&isKau&&rows.filter(([name])=>name===airBusiness).length===2;
     const compare=school?.school==='가천대학교'||isKau;
+    const seatSchool=currentSeatSchools.get(school?.school);
     const hasSchedule=['수원대학교','숙명여자대학교','건국대학교'].includes(school?.school);
     $('quotaSchool').textContent=hasSchedule?'2027 모집인원·전형일정 ↗':compare?'2026·2027 모집인원 비교 ↗':'2027 모집인원 ↗';
     const quotaLines=[];
@@ -428,7 +435,7 @@
       const estimateLabel=estimate==='midpoint'?'중위권(예상)':estimate;
       const line=el('div',null,'dept'), title=el('div');
       title.append(el('b',grouped?t+'편입':name),el('small',compact?'':[fieldLabel,c,grouped?'':t].filter(Boolean).join(' · ')));
-      if(compare)quotaLines.push({name,track:t,compact,meta:title.lastChild});
+      if(compare||seatSchool)quotaLines.push({name,track:t,compact,meta:title.lastChild});
       if(!grouped&&school.majors?.[name])title.append(el('small',school.majors[name].join(' · ')));
       const verdict=el('div',null,'verdict');
       const verdictBadge=badge(b);
@@ -437,7 +444,9 @@
       if(estimateLabel)verdict.append(el('small',estimateLabel));
       if(b==='도전' && marker==='peak3'){
         line.classList.add('peakReach');
-        verdict.append(el('small','영어 상위 3회 기준 적정선 도달','peakNote'));
+        const note=el('small','가능성 있음','peakNote');
+        note.title='영어 상위 3회 성적을 반영하면 적정선에 닿습니다.';
+        verdict.append(note);
       }
       let reason=b==='판정 자료 없음'&&!estimateLabel?'':reasons.get(row);
       if(reason&&estimateLabel&&school.school==='가천대학교')reason+=' 과거 원장에는 가천대 캠퍼스가 따로 표기되어 있지 않습니다.';
@@ -464,7 +473,27 @@
       $('quotaSchool').replaceChildren(linkText);
       showQuotaNumbers(quotaLines,linkText,track,isKau);
     }
+    if(seatSchool&&quotaLines.length)showCurrentSeats(quotaLines,seatSchool);
     $('rows').scrollTop=0;
+  }
+  async function showCurrentSeats(lines,school){
+    try{
+      const {counselingSeats}=await import('./quotas/counseling-seats.js?v=20261125');
+      const lookup=await counselingSeats(school);
+      for(const {name,track,meta} of lines){
+        if(!meta.isConnected)continue;
+        const seats=lookup(name,track);
+        if(!seats)continue;
+        const detail=el('span',null,'currentSeats');
+        detail.append(' · 2027 ');
+        seats.forEach(({label,seats},i)=>{
+          if(i)detail.append(' / ');
+          if(label)detail.append(label+(seats==null?'':' '));
+          if(seats!=null)detail.append(el('strong',seats+'명'));
+        });
+        meta.append(detail);
+      }
+    }catch{ /* The school link still opens the published recruitment guide. */ }
   }
   async function showQuotaNumbers(lines,linkText,selectedTrack,isKau){
     try{
