@@ -156,7 +156,62 @@
     }
     return quotaBasis;
   }
+  function renderCriteria(root,row){
+    const charts=row[8];
+    if(!charts?.length){
+      if(row[4]==='판정 자료 없음'){
+        const section=el('section',null,'criteria');
+        section.append(el('h3','판정 기준'),el('p','최근 백분위　영어 '+(report.metrics?.[0]||'—')+' · 수학 '+(report.metrics?.[1]||'—')),
+          el('p','학생의 성적과 학과 비교 구간이 함께 확보된 과목으로 판정합니다. 이 모집단위는 판정에 필요한 자료가 부족합니다.','criteriaNote'));
+        root.append(section);
+      }
+      return;
+    }
+    const combined=charts[0], legacyWeights=/^영어 (\d+)% · 수학 (\d+)%$/.exec(combined.subject);
+    const share=Number.isFinite(row[15])?row[15]:legacyWeights?Number(legacyWeights[1]):null;
+    const mixed=share!==null&&share>0&&share<100;
+    const separate=charts.some(p=>p.subject==='영어')&&charts.some(p=>p.subject==='수학');
+    const only=combined.subject;
+    const section=el('section',null,'criteria'),table=el('table');
+    section.append(el('h3','판정 기준'));
+    let rule;
+    if(mixed)rule='영어 '+share+'%와 수학 '+(100-share)+'%를 학생 성적과 비교 구간에 적용합니다. 반올림 전 과목값으로 계산한 최근 가중 백분위는 '+combined.value.toFixed(1)+'입니다.';
+    else if(separate)rule='과목별 기준을 적용하는 학과입니다. 영어와 수학을 각각 비교한 뒤 두 판정 중 낮은 쪽을 적용합니다.';
+    else if(row[6]?.includes('만 비교'))rule='두 과목 중 비교 자료가 갖춰진 '+only+' 백분위로 추정한 결과입니다.';
+    else if(share===null&&row[1]==='자연'&&only==='영어')
+      rule='수학 성적과 학과의 수학 비교 구간이 모두 있어야 수학을 반영합니다. 이번 판정은 영어 백분위를 사용합니다.';
+    else rule='이 학과는 '+only+' 백분위를 비교 구간에 대조해 판정했습니다.';
+    section.append(el('p',rule));
+    table.setAttribute('aria-label','과목별 백분위와 기본 판정 반영 기준');
+    const head=table.createTHead().insertRow(),body=table.createTBody();
+    for(const label of ['과목','최근 백분위','상위 3회 평균','기본 판정 반영']){
+      const th=el('th',label);th.scope='col';head.append(th);
+    }
+    for(const [i,subject] of ['영어','수학'].entries()){
+      const tr=body.insertRow(),th=el('th',subject);th.scope='row';tr.append(th);
+      const recent=report.metrics?.[i],peak=report.subjectPeaks?.[subject];
+      tr.insertCell().textContent=recent!=null&&recent!==''&&Number.isFinite(Number(recent))?recent:'자료 없음';
+      tr.insertCell().textContent=Number.isFinite(peak)?peak.toFixed(1):report.subjectPeaks?'3회 미만':'자료 없음';
+      const chart=charts.find(p=>p.subject===subject);
+      let applied='미반영';
+      if(share!==null){
+        const weight=i===0?share:100-share;
+        if(weight>0)applied=weight+'%';
+      }else if(chart){
+        applied=separate?(chart.value<chart.low?'도전':chart.value>chart.high?'안정':'적정'):'반영';
+      }
+      tr.insertCell().textContent=applied;
+    }
+    section.append(table);
+    section.append(el('p',(mixed?'가중':'최근')+' 백분위가 구간 하한보다 낮으면 도전, 구간 안이면 적정, 상한보다 높으면 안정입니다.','criteriaNote'));
+    const peakNote=mixed&&Number.isFinite(combined.reference)?
+      '참고 그래프에는 영어 상위 3회 평균과 수학 최근 백분위를 반영합니다.':
+      '상위 3회 평균은 잘 본 회차의 성적을 살펴보는 참고값입니다.';
+    section.append(el('p',peakNote,'criteriaNote'));
+    root.append(section);
+  }
   function renderComparison(root,row){
+    renderCriteria(root,row);
     const formatBound=n=>String(Number(n.toFixed(4)));
     for(const {subject,low,high,value,reference} of row[8]||[]){
       const hasRef=Number.isFinite(reference), weighted=subject.includes('%');
@@ -186,6 +241,7 @@
         labels.append(caption);
         const rail=el('div',null,'rangeRail');
         const mark=el('span',null,'rangeMark'+(ref?' reference':''));
+        if(!ref&&n<low-1e-9)mark.classList.add('belowRange');
         mark.style.left=at(n);
         mark.title=ref?(weighted?'영어 상위 3회 평균과 최근 수학 성적에 이 학과의 반영 비율을 적용한 참고값입니다.':'영어 백분위가 가장 높았던 세 시험의 평균입니다.'):
           '최근 응시한 최대 세 달의 월별 대표 성적으로 계산한 기본 판정 백분위입니다.';

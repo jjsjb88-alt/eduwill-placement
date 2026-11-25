@@ -46,6 +46,15 @@ main:has(#report:not([hidden])){max-width:1480px}
 .comparisonTitle{flex-wrap:wrap;row-gap:3px}
 .comparisonTitle h3,.seatHeading h3{margin:0;font-size:1.05rem}
 .rangeLegend,.seatHeading a{font-size:.78rem;color:#4b6054}
+.criteria{border-top:1px solid var(--line);padding:12px 0 14px}
+.criteria h3{font-size:1rem;margin:0}
+.criteria p{font-size:.88rem;margin:.3rem 0 .65rem}
+.criteria table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.criteria th,.criteria td{text-align:right;padding:4px 6px;font-size:.88rem;border-bottom:1px solid var(--line)}
+.criteria th:first-child{text-align:left;padding-left:0}
+.criteria thead th{color:var(--sub);font-size:.75rem;font-weight:500}
+.criteria td:nth-child(2){font-weight:700}
+.criteria p.criteriaNote{font-size:.78rem;color:var(--sub);margin:.45rem 0 0}
 .rangeLegend:before{content:'';display:inline-block;vertical-align:-1px;width:10px;height:10px;margin-right:6px;background:#e0ecdb;border:1px solid #93aa91}
 .rangeChart{display:grid;grid-template-columns:minmax(88px,20%) minmax(0,1fr);gap:14px;margin:30px 12px 0 0;font-variant-numeric:tabular-nums}
 .rangeBound{position:absolute;bottom:100%;transform:translateX(-50%);color:#426548;font:600 13px/1.3 Georgia,serif}
@@ -56,7 +65,7 @@ main:has(#report:not([hidden])){max-width:1480px}
 .rangeRail{position:relative}
 .rangeRail:before{content:'';height:1px;background:#b7c3b6}
 .rangeMark{position:absolute;top:50%;width:11px;height:11px;border:2px solid currentColor;border-radius:50%;background:currentColor;transform:translate(-50%,-50%);color:#284c39}
-#departmentPanel:has(#recordGrade[data-band=도전]) .rangeMark:not(.reference){color:#975438}
+.rangeMark.belowRange{color:#975438}
 .rangeMark.reference{background:#fcfbf6;color:#35613e}
 .rangeMark .pointText{position:absolute;top:50%;left:13px;transform:translateY(-50%);display:grid;justify-items:start;white-space:nowrap;line-height:1.1}
 .rangeMark .leftValue{left:auto;right:13px;justify-items:end}

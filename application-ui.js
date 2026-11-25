@@ -107,7 +107,7 @@
       reason?'판정 근거 · '+reason+' 비교 구간은 같은 학교·학과·전형의 과거 합격 자료를 바탕으로 정합니다. 구간 아래는 도전, 구간 안은 적정, 상한을 넘으면 안정입니다.':'';
     const quota=$('recordQuotaBasis');
     if(quota){quota.replaceChildren();quota.hidden=!showQuota;if(showQuota)showQuota(quota,chart);}
-    $('recordJustification').open=!!reason && !chart.childElementCount;
+    $('recordJustification').open=!!reason && (!chart.childElementCount||row.verdict==='판정 자료 없음');
     refresh();
   }
   function showAccount(row){
