@@ -4,6 +4,7 @@
   let student, epoch=0, store, user, stop, ready=false, busy=false, records=new Set(), target, desired, notice='';
   const key=r=>[r.school,r.campus,r.department,r.field,r.track].join('|');
   let currentUnits=new Map(), waitingRegistration=false;
+  let panelRow, panelLine, panelMessage='';
   function refresh(){
     for(const line of $('rows').querySelectorAll('.dept')){
       const mark=line.querySelector('.confirmed');
@@ -11,6 +12,12 @@
     }
     $('recordAccount').textContent=ready?'연결된 상담 계정':waitingRegistration?'상담자 등록 확인':'지원 기록 연결';
     $('recordStatus').textContent=notice;
+    if(panelRow){
+      const confirmed=ready && records.has(key(panelRow));
+      $('panelSave').textContent=confirmed?'확정 취소':'지원 확정';
+      $('panelSave').disabled=busy;
+      $('panelStatus').textContent=panelMessage || (confirmed?'지원 확정됨':'');
+    }
     const previous=$('previousChoices');
     previous.replaceChildren();
     if(ready)for(const id of records){
@@ -18,7 +25,7 @@
       if(!currentUnits.has(school)||currentUnits.get(school).has(id))continue;
       const button=document.createElement('button');button.type='button';button.className='quiet';
       button.textContent=[school,campus,department,field,track].filter(Boolean).join(' · ');
-      button.onclick=()=>show({school,campus,department,field,track,verdict:'이전 지원 기록'});
+      button.onclick=()=>showAccount({school,campus,department,field,track,verdict:'이전 지원 기록'});
       previous.append(button);
     }
     $('previousApplications').hidden=!previous.childElementCount;
@@ -67,6 +74,7 @@
       stop=store.subscribe(student,confirmed=>{
         if(token!==epoch)return;
         const wasReady=ready;
+        if(panelRow && records.has(key(panelRow))!==confirmed.has(key(panelRow)))panelMessage='';
         records=confirmed;ready=true;
         if(!wasReady){busy=false;notice='';if(target)desired=!records.has(key(target));}
         refresh();
@@ -75,16 +83,23 @@
       });
     }catch(err){if(token===epoch){busy=false;notice=message(err);refresh();}}
   }
-  function show(row,reason='',estimated=false,showQuota){
-    target=row;desired=row?!records.has(key(row)):null;
-    dialog.classList.toggle('departmentDialog',!!row);
-    $('recordTitle').textContent=row?.department||'상담 계정';
-    $('recordSchool').textContent=row?[row.school,row.track && row.track.replace(/편입(?:학)?$/,'')+'편입'].filter(Boolean).join(' / '):'';
-    $('recordMeta').textContent=row?[$('student').textContent,row.campus,row.field,typeof estimated==='string'?estimated:''].filter(Boolean).join(' · '):'';
+  function clearPreview(){
+    panelLine?.removeAttribute('aria-current');panelLine=null;panelRow=null;panelMessage='';
+    $('panelContent').hidden=true;$('panelEmpty').hidden=false;
+    $('recordComparison').replaceChildren();$('recordQuotaBasis').replaceChildren();
+    for(const id of ['recordSchool','recordMeta','recordTitle','recordReason','panelStatus'])$(id).textContent='';
+  }
+  function preview(line,row,reason,estimated,showQuota){
+    if(panelLine===line)return;
+    panelLine?.removeAttribute('aria-current');panelLine=line;panelRow=row;panelMessage='';
+    line.setAttribute('aria-current','true');
+    $('panelEmpty').hidden=true;$('panelContent').hidden=false;
+    $('recordTitle').textContent=row.department;
+    $('recordSchool').textContent=[row.school,row.track && row.track.replace(/편입(?:학)?$/,'')+'편입'].filter(Boolean).join(' / ');
+    $('recordMeta').textContent=[$('student').textContent,row.campus,row.field,estimated].filter(Boolean).join(' · ');
     const grade=$('recordGrade');
-    grade.hidden=!row;
-    grade.querySelector('b').textContent=row?.verdict==='판정 자료 없음'?'판정 미산출':row?.verdict;
-    grade.dataset.band=row?.verdict||'';
+    grade.querySelector('b').textContent=row.verdict==='판정 자료 없음'?'판정 미산출':row.verdict;
+    grade.dataset.band=row.verdict;
     const chart=$('recordComparison');chart.replaceChildren();
     $('recordJustification').hidden=!reason;
     $('recordReason').textContent=estimated||row?.verdict==='판정 자료 없음'?reason:
@@ -92,8 +107,14 @@
     const quota=$('recordQuotaBasis');
     if(quota){quota.replaceChildren();quota.hidden=!showQuota;if(showQuota)showQuota(quota,chart);}
     $('recordJustification').open=!!reason && !chart.childElementCount;
-    dialog.showModal();dialog.scrollTop=0;refresh();
-    if(!ready)void attach();
+    refresh();
+  }
+  function showAccount(row){
+    target=row;desired=row?!records.has(key(row)):null;
+    $('accountTitle').textContent=row?.verdict==='이전 지원 기록'?'이전 지원 기록':'상담 계정';
+    $('accountTarget').textContent=row?[$('student').textContent,row.school,row.department,row.track].filter(Boolean).join(' · '):'';
+    dialog.showModal();refresh();
+    if(!ready&&!busy)void attach();
   }
   $('recordGoogle').onclick=()=>attach(true);
   if(retry)retry.onclick=()=>attach();
@@ -103,36 +124,60 @@
     catch(err){if(token===epoch)notice=message(err);}
     finally{if(token===epoch){busy=false;refresh();}}
   };
-  $('recordSave').onclick=async()=>{
-    if(!ready||busy||!target)return;
-    const token=epoch,row=target,confirmed=desired;
+  async function save(row,confirmed){
+    if(!row||!ready||busy)return;
+    const token=epoch, beforeWrite=records;
     busy=true;notice='저장 중입니다.';refresh();
     try{
       await store.save(student,row,confirmed);
       if(token!==epoch)return;
-      notice=confirmed?'지원을 확정했습니다.':'지원 확정을 취소했습니다.';
-      dialog.close();
-    }catch(err){if(token===epoch)notice=message(err);}
+      if(records===beforeWrite){
+        if(confirmed)records.add(key(row));else records.delete(key(row));
+      }
+      const result=confirmed?'지원을 확정했습니다.':'지원 확정을 취소했습니다.';
+      notice=[row.school,row.department,row.track].filter(Boolean).join(' · ')+' — '+result;
+      if(panelRow && key(panelRow)===key(row))panelMessage=result;
+      if(dialog.open && target===row)dialog.close();
+    }catch(err){if(token===epoch){notice=message(err);if(panelRow && key(panelRow)===key(row))panelMessage=notice;}}
     finally{if(token===epoch){busy=false;refresh();}}
+  }
+  function toggle(row){
+    if(!row)return;
+    if(!ready){showAccount(row);return;}
+    void save(row,!records.has(key(row)));
+  }
+  $('panelSave').onclick=()=>toggle(panelRow);
+  $('panelClose').onclick=()=>{
+    panelLine?.focus({preventScroll:true});
+    clearPreview();
   };
+  $('recordSave').onclick=()=>save(target,desired);
   $('recordClose').onclick=()=>dialog.close();
   dialog.oncancel=e=>{if(busy && ready)e.preventDefault();};
   dialog.onclose=()=>{target=null;};
-  $('recordAccount').onclick=()=>show(null);
+  $('recordAccount').onclick=()=>showAccount(null);
   window.applicationRecords={
+    clearPreview,
     select(id,schools=[]){
       currentUnits=new Map(schools.filter(s=>s.catalogYear).map(s=>[s.school,new Set(s.rows.map(([d,f,c,t])=>[s.school,c,d,f,t].join('|')))]));
-      $('previousApplications').open=false;
+      clearPreview();$('previousApplications').open=false;
       detached();student=id;target=null;if(dialog.open)dialog.close();refresh();
       if(id && sessionStorage.getItem('placement-record-session'))void attach();
     },
     bind(line,row,box,reason,estimated=false,showQuota){
       if(!student)return;
       line.dataset.choice=key(row);line.tabIndex=0;line.setAttribute('role','button');
-      line.title='더블클릭 또는 Enter로 판정 근거와 지원 기록 열기';
-      const open=()=>show(row,reason,estimated,showQuota);
-      line.ondblclick=open;
-      line.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
+      line.title='클릭하면 판정 근거 보기 · 더블클릭하면 지원 확정 또는 취소';
+      line.setAttribute('aria-controls','departmentPanel');
+      const open=()=>preview(line,row,reason,estimated,showQuota);
+      line.onclick=open;
+      line.ondblclick=()=>toggle(row);
+      line.onkeydown=e=>{
+        if(e.key==='Enter'||e.key===' '){
+          e.preventDefault();if(e.repeat)return;
+          open();$('recordTitle').focus();
+        }
+      };
       const mark=document.createElement('small');mark.className='confirmed';mark.textContent='지원 확정 ✓';
       mark.hidden=!ready||!records.has(key(row));box.append(mark);
     }

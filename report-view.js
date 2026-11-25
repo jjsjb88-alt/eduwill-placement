@@ -404,6 +404,7 @@
     }catch(err){if(token===serial)$('status').textContent=err.message.includes('갱신')?err.message:'조회하지 못했습니다. 잠시 후 다시 시도해주세요.';}
   }
   function renderRows(){
+    window.applicationRecords.clearPreview();
     const school=selected==null?null:report.schools[selected];
     $('school').textContent=school?.school||'학과별 결과';
     const q=normalize($('department').value), field=$('field').value, track=$('track').value;

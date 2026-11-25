@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://apis.google.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://trnasfer-2982c.firebaseapp.com https://apis.google.com; frame-src https://trnasfer-2982c.firebaseapp.com; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
-<title>서정빈 · 전 분원 배치상담</title><link rel="stylesheet" href="report-view.css?v=20261125-omr"><script src="application-ui.js?v=20261125-range" defer></script><script src="report-view.js?v=20261125-omr-seats" defer></script></head>
+<title>서정빈 · 전 분원 배치상담</title><link rel="stylesheet" href="report-view.css?v=20261125-panel"><script src="application-ui.js?v=20261125-panel" defer></script><script src="report-view.js?v=20261125-panel" defer></script></head>
 <body><header><div class="bar"><strong>에듀윌 편입</strong><span>서정빈 배치상담실</span><button id="lock" hidden>상담 종료 · 잠그기</button></div></header>
 <main>
 <section id="gate" class="gate"><p class="eyebrow">2027학년도 편입</p><h1>전 분원 배치상담</h1><p class="lead">서정빈 <span>·</span> 모의고사 성적 상담</p>
@@ -15,15 +15,22 @@
 <p>2015~2022학년도 합격자의 모의고사 기록입니다. 과목별로 학생 성적과 합격자 중간 50% 구간을 비교합니다.</p>
 <div class="filters"><label>대학 <select id="archiveSchool"></select></label><label>학과 기준 <select id="archiveSource"><option value="raw">원장 학과명</option><option value="links">2026 모집단위 대조</option></select></label><label>전형 <select id="archiveTrack"><option>전체</option><option>일반</option><option>학사</option><option>특별전형</option></select></label></div>
 <label class="deptSearch">학과 검색 <input id="archiveQuery" type="search" autocomplete="off"></label><p id="archiveCount" role="status"></p><div id="archiveRows"></div></details>
-<div class="recordTools"><button id="recordAccount" type="button" class="quiet">지원 기록 연결</button><span>학과를 더블클릭하면 판정 근거를 보고 지원을 확정하거나 취소할 수 있습니다.</span><span id="recordStatus" role="status"></span></div>
+<div class="recordTools"><button id="recordAccount" type="button" class="quiet">지원 기록 연결</button><span>학과를 한 번 클릭하면 판정 근거가 열립니다. 더블클릭하면 지원을 확정하고, 다시 더블클릭하면 취소합니다.</span><span id="recordStatus" role="status"></span></div>
 <details id="previousApplications" hidden><summary>이전 모집단위로 확정한 지원</summary><div id="previousChoices"></div></details>
-<dialog id="applicationDialog" aria-labelledby="recordTitle">
-<div class="recordHeading"><div><div id="recordSchool"></div><h2 id="recordTitle"></h2><div id="recordMeta"></div></div><div id="recordGrade" hidden><small>기본 판정</small><b></b></div></div>
-<div id="recordComparison"></div><section id="recordQuotaBasis" aria-label="모집인원" hidden></section>
-<details id="recordJustification" hidden><summary>판정 근거 자세히 보기</summary><p id="recordReason"></p></details>
+<dialog id="applicationDialog" aria-labelledby="accountTitle">
+<h2 id="accountTitle">지원 기록 연결</h2><p id="accountTarget"></p>
 <p id="recordMessage" role="status"></p><div class="recordActions"><button id="recordGoogle" class="primary" hidden>Google 계정으로 연결</button><button id="recordRetry" class="primary" hidden>등록 다시 확인</button><button id="recordSave" class="primary" hidden>지원 확정</button><button id="recordLogout" class="quiet" hidden>계정 연결 해제</button><button id="recordClose" class="quiet" autofocus>닫기</button></div></dialog>
 <div class="filters"><label>추정 계열 <select id="field"><option>전체</option><option>인문</option><option>자연</option></select></label><label>전형 <select id="track"><option value="전체">전체</option><option value="일반">일반편입</option><option value="학사">학사편입</option></select></label></div>
 <div class="board"><section><div class="sectionHead"><h2>학교</h2><span id="count"></span></div><nav id="bands" aria-label="학교 판정"></nav><div id="schools"></div></section>
-<section><div class="sectionHead"><h2 id="school">학과별 결과</h2><span id="schoolBand"></span></div><div class="schoolSources"><a id="quotaSchool" target="_blank" rel="noopener" hidden>2027 모집인원 ↗</a><button id="allFields" type="button" class="quiet" hidden></button></div><small id="fieldBasis" hidden>원자료에 계열이 없으면 과거 합격자의 수학 모의고사 응시 비율로 추정합니다.</small><label class="deptSearch">학과 찾기 <input id="department" type="search" autocomplete="off"></label><div id="rows"></div></section></div>
+<section><div class="sectionHead"><h2 id="school">학과별 결과</h2><span id="schoolBand"></span></div><div class="schoolSources"><a id="quotaSchool" target="_blank" rel="noopener" hidden>2027 모집인원 ↗</a><button id="allFields" type="button" class="quiet" hidden></button></div><small id="fieldBasis" hidden>원자료에 계열이 없으면 과거 합격자의 수학 모의고사 응시 비율로 추정합니다.</small><label class="deptSearch">학과 찾기 <input id="department" type="search" autocomplete="off"></label><div id="rows"></div></section>
+<aside id="departmentPanel" aria-label="학과 상세">
+<div id="panelEmpty"><h2>학과 상세</h2><p>학과를 선택하면 성적 구간과 모집인원을 볼 수 있습니다.</p></div>
+<div id="panelContent" hidden>
+<div class="panelBar"><div id="recordSchool"></div><button id="panelClose" class="quiet" type="button" aria-label="학과 상세 닫기">닫기</button></div>
+<div class="recordHeading"><div><h2 id="recordTitle" tabindex="-1"></h2><div id="recordMeta"></div></div><div id="recordGrade"><small>기본 판정</small><b></b></div></div>
+<div id="recordComparison"></div><section id="recordQuotaBasis" aria-label="모집인원" hidden></section>
+<details id="recordJustification" hidden><summary>판정 근거 자세히 보기</summary><p id="recordReason"></p></details>
+<div class="panelActions"><button id="panelSave" class="primary" type="button">지원 확정</button><span id="panelStatus" role="status"></span></div>
+</div></aside></div>
 <details id="history"><summary>응시 성적 보기</summary><div class="scroll"><table><thead><tr><th>시행일</th><th>시험</th><th>과목</th><th>원점수</th><th>백분위</th><th>응시자</th><th>반영</th></tr></thead><tbody id="exams"></tbody></table></div></details></section>
 <footer>서정빈 배치상담실 <a href="mini.html">기출 배치상담 ↗</a> · <a href="quotas/">대학별 모집인원·전형일정 ↗</a></footer></section></main></body></html>

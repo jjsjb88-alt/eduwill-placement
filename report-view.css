@@ -23,11 +23,21 @@ header{background:#1c392f;color:#fff}.bar,main{max-width:1240px;margin:auto;padd
 .compactUnit .dept>div:first-child{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px}
 .compactUnit .dept .verdict{display:contents}
 .compactUnit .dept .verdict small{grid-column:1/-1;text-align:left}
-.departmentDialog{width:min(760px,94vw);max-height:92vh;padding:24px clamp(18px,3vw,36px);border-top:4px solid #284d3e;background:#fcfbf6;overscroll-behavior:contain}
+main:has(#report:not([hidden])){max-width:1480px}
+.board{align-items:start;overflow-anchor:none}
+@media(min-width:960px){.board{grid-template-columns:minmax(155px,.68fr) minmax(245px,1fr) minmax(360px,1.62fr);gap:clamp(14px,1.8vw,26px)}}
+@media(min-width:701px) and (max-width:959px){#departmentPanel{grid-column:1/-1}}
+#departmentPanel{min-width:0;padding:18px clamp(14px,1.8vw,26px);background:#fcfbf6;border:1px solid var(--line);border-top:3px solid #284d3e}
+#panelEmpty h2{font-size:23px}#panelEmpty p{font-size:.88rem;color:var(--sub);margin-top:8px}
+.panelBar,.panelActions{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.panelBar .quiet{padding:2px 7px;font-size:.76rem}
+.panelActions{justify-content:flex-start;border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+.panelActions button{font-size:.86rem}.panelActions span{font-size:.82rem;color:var(--sub)}
+.dept[aria-current=true]{outline:2px solid #59765e;outline-offset:-2px;background:#e9eee3}
 .recordHeading,.comparisonTitle,.seatHeading{display:flex;justify-content:space-between;align-items:center;gap:14px}
 #recordSchool,#recordMeta{font-size:.86rem;color:var(--sub)}
 #recordSchool{font-weight:600}
-.departmentDialog #recordTitle{font-size:clamp(27px,3vw,37px);line-height:1.35;margin:4px 0}
+#recordTitle{font-size:clamp(25px,2.5vw,34px);line-height:1.35;margin:4px 0}
 #recordGrade{flex:none;text-align:center;border-left:1px solid var(--line);padding-left:20px}
 #recordGrade small,.rangeLabels small,.seatCell small{display:block;font-size:.75rem;color:var(--sub);font-weight:400}
 #recordGrade b{font:600 25px/1.55 Batang,serif}
@@ -46,7 +56,7 @@ header{background:#1c392f;color:#fff}.bar,main{max-width:1240px;margin:auto;padd
 .rangeRail{position:relative}
 .rangeRail:before{content:'';height:1px;background:#b7c3b6}
 .rangeMark{position:absolute;top:50%;width:11px;height:11px;border:2px solid currentColor;border-radius:50%;background:currentColor;transform:translate(-50%,-50%);color:#284c39}
-.departmentDialog:has(#recordGrade[data-band=도전]) .rangeMark:not(.reference){color:#975438}
+#departmentPanel:has(#recordGrade[data-band=도전]) .rangeMark:not(.reference){color:#975438}
 .rangeMark.reference{background:#fcfbf6;color:#35613e}
 .rangeMark .pointText{position:absolute;top:50%;left:13px;transform:translateY(-50%);display:grid;justify-items:start;white-space:nowrap;line-height:1.1}
 .rangeMark .leftValue{left:auto;right:13px;justify-items:end}
@@ -56,12 +66,10 @@ header{background:#1c392f;color:#fff}.bar,main{max-width:1240px;margin:auto;padd
 .rangeAxis{position:relative;height:25px;border-top:1px solid #b9c4b6}
 .rangeAxis span{position:absolute;top:4px;transform:translateX(-50%);font:12px Georgia,serif;color:#5c685f}
 .rangeAxis span:before{content:'';position:absolute;top:-5px;left:50%;width:1px;height:3px;background:#a5b19f}
-.departmentDialog .rangeNote{font-size:.87rem;color:#405448;margin:5px 0 0}
+#departmentPanel .rangeNote{font-size:.87rem;color:#405448;margin:5px 0 0}
 #recordQuotaBasis .seatTrend{display:flex;align-items:center;gap:16px;margin:5px 0 10px}
 .seatCell{display:flex;flex-direction:column;font-size:1.25rem}
 .seatArrow{color:#819083}.seatChange{background:#edf2e9;color:#3f5d46;padding:2px 8px}
 #recordQuotaBasis>div:not(.seatHeading),#recordJustification,#recordMessage{font-size:.82rem;color:var(--sub)}
 #recordJustification{margin-top:9px}#recordReason{max-width:none}
-.departmentDialog #recordMessage{border-top:1px solid var(--line);padding-top:11px;margin:14px 0 4px}
-.departmentDialog .recordActions{margin-top:8px}
 @media(max-width:520px){.rangeChart{gap:8px;margin-right:8px}.rangeAxis span:nth-child(even):not(:last-child){display:none}.rangeLabels>div{font-size:.8rem}.rangeMark b{font-size:16px}.comparisonTitle{align-items:flex-start;flex-direction:column}}
