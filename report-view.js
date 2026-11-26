@@ -16,7 +16,8 @@
     return field==='전체'||field===actual||actual==='이학·사회';
   }
   let access, master, report, selected, band, serial=0;
-  let kyonggiSeats, kyonggiSeatsPending, examFitIndex;
+  let kyonggiSeats, kyonggiSeatsPending;
+  const supplementIndexes=new Map();
   const el=(tag,text,cls)=>{
     const node=document.createElement(tag);
     if(text!=null)node.textContent=text;
@@ -87,16 +88,16 @@
     const clear=await decrypt(await aes(key),await response.arrayBuffer(),id);
     return new Response(new Blob([clear]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
   }
-  async function loadExamFit(match){
-    if(!access.examFit)return;
+  async function loadSupplement(match,file){
     try{
-      examFitIndex??=fetch('reports/'+access.version+'/exam-fit.json?v=20261125',{cache:'no-cache'}).then(response=>{
-        if(!response.ok)throw Error('궁합 자료를 열 수 없습니다.');
-        return response.json();
-      }).catch(error=>{examFitIndex=null;throw error;});
-      const encrypted=(await examFitIndex)[match.id];
+      if(!supplementIndexes.has(file))supplementIndexes.set(file,
+        fetch('reports/'+access.version+'/'+file+'.json',{cache:'no-cache'}).then(response=>{
+          if(!response.ok)throw Error('기출 자료를 열 수 없습니다.');
+          return response.json();
+        }).catch(error=>{supplementIndexes.delete(file);throw error;}));
+      const encrypted=(await supplementIndexes.get(file))[match.id];
       if(!encrypted)return;
-      const clear=await decrypt(await aes(from64(match.key)),from64(encrypted),'exam-fit:'+match.id);
+      const clear=await decrypt(await aes(from64(match.key)),from64(encrypted),file+':'+match.id);
       return JSON.parse(new TextDecoder().decode(clear));
     }catch{ /* Existing counseling reports are still available. */ }
   }
@@ -106,6 +107,8 @@
     for(const id of ['student','branch','english','math','school','schoolBand','count','bands','rows','schools','exams','choices','status'])$(id).replaceChildren();
     $('department').value='';$('history').open=false;
     $('percentileBasis').open=false;$('basisRows').replaceChildren();$('basisNote').textContent='';
+    $('pastScores').open=false;$('pastScores').hidden=true;$('pastScoreRows').replaceChildren();
+    $('schoolPastScores').hidden=true;$('schoolPastScores').textContent='';
     $('archive').open=false;$('archive').hidden=true;$('archiveRows').replaceChildren();
     $('archiveQuery').value='';$('archiveSource').value='raw';$('archiveTrack').value='전체';
   }
@@ -409,11 +412,26 @@
       return group;
     }));
   }
+  const scoreText=(score,max)=>score.toLocaleString('ko-KR',{maximumFractionDigits:4})+'점'+
+    (max==null?' (만점 미확인)':' / '+max.toLocaleString('ko-KR',{maximumFractionDigits:4})+'점');
+  function renderPastScores(rows){
+    $('pastScores').open=false;
+    $('pastScores').hidden=!rows.length;
+    $('pastScoreSummary').textContent='기출 OMR 성적 '+rows.length+'건';
+    $('pastScoreRows').replaceChildren(...rows.map(([year,school,subject,score,max])=>{
+      const tr=el('tr');
+      tr.append(...[year+'학년도',school,subject,scoreText(score,max)].map(value=>el('td',value)));
+      return tr;
+    }));
+  }
   async function choose(match,token){
-    const [data,{reconcileSchool,countsForSchool,schoolCutoffDistance}]=await Promise.all([loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-gap')]);
+    const [data,{reconcileSchool,countsForSchool,schoolCutoffDistance},examFit,pastScores]=await Promise.all([
+      loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-gap'),
+      access.examFit&&loadSupplement(match,'exam-fit'),access.pastScores&&loadSupplement(match,'past-scores')
+    ]);
     if(token!==serial)return;
-    if(!data.examFit)data.examFit=await loadExamFit(match);
-    if(token!==serial)return;
+    data.examFit??=examFit||undefined;
+    data.pastScores=Array.isArray(pastScores)?pastScores:[];
     const changed=new Set();
     data.schools.forEach((s,i)=>{
       if(reconcileSchool(s))changed.add(i);
@@ -444,6 +462,7 @@
     $('student').textContent=data.name;$('branch').textContent=data.branch+' · '+data.asof.replaceAll('-','.')+' 기준';
     [$('english').textContent,$('math').textContent]=data.metrics;
     renderBasis(data);
+    renderPastScores(data.pastScores);
     $('archive').hidden=!(access.historical&&data.archiveBands);
     $('field').value=$('track').value=band='전체';
     $('history').hidden=!data.history.length;
@@ -566,6 +585,10 @@
     window.applicationRecords.clearPreview();
     const school=selected==null?null:report.schools[selected];
     $('school').textContent=school?.school||'학과별 결과';
+    const schoolScores=(report?.pastScores||[]).filter(([,name])=>name===school?.school);
+    $('schoolPastScores').hidden=!schoolScores.length;
+    $('schoolPastScores').textContent=schoolScores.length?'기출 OMR · '+schoolScores.map(([year,,subject,score,max])=>
+      year+' '+subject+' '+scoreText(score,max)).join(' · '):'';
     const q=normalize($('department').value), field=$('field').value, track=$('track').value;
     const seatSchool=currentSeatSchools.get(school?.school);
     const placements=new Map();

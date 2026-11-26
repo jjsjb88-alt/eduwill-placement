@@ -95,3 +95,7 @@ main:has(#report:not([hidden])){max-width:1480px}
 #recordQuotaBasis>div:not(.seatHeading),#recordJustification,#recordMessage{font-size:.82rem;color:var(--sub)}
 #recordJustification{margin-top:9px}#recordReason{max-width:none}
 @media(max-width:520px){.rangeChart{gap:8px;margin-right:8px}.rangeAxis span:nth-child(even):not(:last-child){display:none}.rangeLabels>div{font-size:.8rem}.rangeMark b{font-size:16px}.comparisonTitle{align-items:flex-start;flex-direction:column}}
+#pastScores{margin:8px 0 12px}
+#pastScores summary{width:fit-content;cursor:pointer}
+#pastScores td:last-child{white-space:nowrap}
+#schoolPastScores{margin:4px 0 10px;color:var(--sub);font-size:.82rem}
