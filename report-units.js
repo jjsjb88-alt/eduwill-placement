@@ -1,7 +1,17 @@
-import directory,{campuses,pendingNames} from './unit-names.js?v=20261125-units';
+import directory,{campuses,pendingNames} from './unit-names.js?v=20261126-admission-unitssejong';
 import {excludedKonkukUnit} from './quotas/counseling-seats.js?v=20261125-history';
 
 const indices=new Map();
+// Tracks with no seats in the reviewed 2027 transfer guides.
+const closedIntakes=new Map([
+  ['경기대학교',new Set(['일반|전자물리학과'])],
+  ['국민대학교',new Set([
+    '학사|유라시아학과','학사|일본학과','학사|중국학부/중국어문전공',
+    '학사|한국어문학부/국어국문학전공','학사|언론정보학부/광고홍보학전공',
+    '학사|영어영문학부/글로벌커뮤니케이션영어전공'
+  ])],
+  ['이화여자대학교',new Set(['학사|전자공학과','일반|독어독문학과'])]
+]);
 export const countsForSchool=row=>!row[12]?.length&&!row[14]&&
   !(row[9]?.year===2027&&row[9].seats==null)&&['도전','적정','안정'].includes(row[4]);
 
@@ -32,7 +42,7 @@ for(const [school,tracks] of Object.entries(directory)){
 }
 
 // Preserve each entire evidence row. Never mix a source's band with another source's chart.
-export function reconcileSchool(school){
+function reconcileUnitNames(school){
   const index=indices.get(school.school);
   if(school.catalogYear)return false;
   for(const row of school.rows){
@@ -82,5 +92,21 @@ export function reconcileSchool(school){
     }
     school.rows.push(row);school.reasons.push(reason);
   }
+  return true;
+}
+
+export function reconcileSchool(school){
+  const changed=reconcileUnitNames(school),closed=closedIntakes.get(school.school);
+  if(!closed)return changed;
+  const rows=[],reasons=[];
+  school.rows.forEach((row,i)=>{
+    if(!closed.has(row[3]+'|'+row[0])){
+      rows.push(row);
+      reasons.push(school.reasons?.[i]);
+    }
+  });
+  if(rows.length===school.rows.length)return changed;
+  school.rows=rows;
+  school.reasons=reasons;
   return true;
 }

@@ -9,7 +9,7 @@
   const currentSeatSchools=new Map([['숙명여자대학교','sookmyung'],['건국대학교','konkuk'],['경기대학교','kyonggi'],['국민대학교','kookmin'],['이화여자대학교','ewha']]);
   const knownKonkukGlocal=/^(ICT융합공학부|국제비즈니스학부|바이오융합과학부)\//;
   const isAirBusiness=(school,name)=>school===kauName&&name===airBusiness;
-  const loadCounselingSeats=school=>import('./quotas/counseling-seats.js?v=20261126-ewha').then(({counselingSeats})=>counselingSeats(school));
+  const loadCounselingSeats=school=>import('./quotas/counseling-seats.js?v=20261126-admission-units').then(({counselingSeats})=>counselingSeats(school));
   const matchesTrack=(track,row)=>track==='전체'||row[3].replace(/\s/g,'').startsWith(track);
   function matchesField(field,school,[name,actual]){
     if(isAirBusiness(school,name))actual='인문';
@@ -426,7 +426,7 @@
   }
   async function choose(match,token){
     const [data,{reconcileSchool,countsForSchool,schoolCutoffDistance},examFit,pastScores]=await Promise.all([
-      loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261125-gap'),
+      loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261126-admission-units'),
       access.examFit&&loadSupplement(match,'exam-fit'),access.pastScores&&loadSupplement(match,'past-scores')
     ]);
     if(token!==serial)return;
