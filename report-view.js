@@ -6,10 +6,10 @@
   const normalize = s => s.normalize('NFKC').replace(/\s/g,'').toLowerCase();
   const bands=['전체','적정','안정','도전'];
   const kauName='한국항공대학교', airBusiness='항공·경영대학';
-  const currentSeatSchools=new Map([['숙명여자대학교','sookmyung'],['건국대학교','konkuk'],['경기대학교','kyonggi'],['국민대학교','kookmin']]);
+  const currentSeatSchools=new Map([['숙명여자대학교','sookmyung'],['건국대학교','konkuk'],['경기대학교','kyonggi'],['국민대학교','kookmin'],['이화여자대학교','ewha']]);
   const knownKonkukGlocal=/^(ICT융합공학부|국제비즈니스학부|바이오융합과학부)\//;
   const isAirBusiness=(school,name)=>school===kauName&&name===airBusiness;
-  const loadCounselingSeats=school=>import('./quotas/counseling-seats.js?v=20261126-kookmin').then(({counselingSeats})=>counselingSeats(school));
+  const loadCounselingSeats=school=>import('./quotas/counseling-seats.js?v=20261126-ewha').then(({counselingSeats})=>counselingSeats(school));
   const matchesTrack=(track,row)=>track==='전체'||row[3].replace(/\s/g,'').startsWith(track);
   function matchesField(field,school,[name,actual]){
     if(isAirBusiness(school,name))actual='인문';

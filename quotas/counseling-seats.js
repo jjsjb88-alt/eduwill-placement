@@ -182,7 +182,47 @@ function kookminSeatLookup(guide){
   };
 }
 
+// 이화여대 공과대학·인공지능대학 연혁과 2027 편입 모집요강.
+const ewhaNames=new Map([
+  ['문헌정보학전공','문헌정보학과'],['국어국문학전공','국어국문학과'],
+  ['독어독문학전공','독어독문학과'],['사학전공','사학과'],['사회학전공','사회학과'],
+  ['수학전공','수학과'],['심리학전공','심리학과'],['영어영문학전공','영어영문학부'],
+  ['중어중문학전공','중어중문학과'],['철학전공','철학과'],
+  ['경영학전공','경영학부'],['커뮤니케이션미디어학전공','커뮤니케이션·미디어학부'],
+  ['건축학전공','건축학과(5년제)'],['건축도시시스템공학전공','건축도시시스템공학과'],
+  ['기후에너지시스템공학전공','기후에너지시스템공학과'],['환경공학전공','환경공학과'],
+  ['휴먼기계바이오공학부','휴먼기계바이오공학과'],['식품공학전공','식품생명공학과'],
+  ['식품생명공학전공','식품생명공학과'],['화학신소재공학전공','화공신소재공학과'],
+  ['화공신소재공학전공','화공신소재공학과'],['화학나노과학전공','화학·나노과학과'],
+  ['전자공학과','융합전자반도체공학부 전자전기공학전공'],
+  ['컴퓨터공학전공','컴퓨터공학과'],['사이버보안전공','사이버보안학과'],['생명과학전공','생명과학과']
+].map(([past,current])=>[normalizeUnit(past),current]));
+
+function ewhaSeatLookup(guide){
+  const units=new Map();
+  for(const row of guide.rows){
+    const full=row[0], short=full.split(' ').at(-1);
+    units.set(normalizeUnit(full),row);
+    units.set(normalizeUnit(short.replace(/\(5년제\)$/u,'')),row);
+  }
+  const general=guide.headers.indexOf('일반')+1, bachelor=guide.headers.indexOf('학사 최대')+1;
+  return (name,track)=>{
+    const label=track.replace(/\s/g,'').replace(/편입(?:학)?$/,'');
+    const column=label==='일반'?general:label==='학사'?bachelor:0;
+    if(!column)return null;
+    const reported=normalizeUnit(name.replaceAll('/',' '));
+    const key=normalizeUnit(name.split(/[/\s]+/u).at(-1).replace(/\(5년제\)$/u,''));
+    const alias=ewhaNames.get(key);
+    const row=units.get(reported)||units.get(alias?normalizeUnit(alias):key);
+    if(!row)return [{label:'모집단위 확인 필요'}];
+    const unit=normalizeUnit(row[0])===reported?'':row[0]+' ';
+    const seats=row[column];
+    return [{label:(unit+(seats==null?'미선발':label==='학사'?'학사 최대':'')).trim(),seats}];
+  };
+}
+
 export function seatLookup(guide,school){
+  if(school==='ewha')return ewhaSeatLookup(guide);
   if(school==='kyonggi')return kyonggiSeatLookup(guide);
   if(school==='kookmin')return kookminSeatLookup(guide);
   const units=new Map(guide.rows.map(row=>[normalizeUnit(row[0]),row]));
