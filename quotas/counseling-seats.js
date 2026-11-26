@@ -137,8 +137,54 @@ function kyonggiSeatLookup(guide){
   return lookup;
 }
 
+const kookminNames=new Map([
+  // 국민대 학적변경 안내(2026·2027) 및 해당 학부의 전공 안내.
+  ['경영정보전공','비즈니스IT전공'],['정보시스템전공','비즈니스IT전공'],
+  ['빅데이터경영통계전공','AI빅데이터융합경영학과'],
+  ['재무금융전공','경영학전공'],['회계학전공','경영학전공'],
+  ['행정학전공','행정학과'],['정책학전공','행정학과'],['수학과','정보보안암호수학과'],
+  ['중국어문전공','중어중문학과'],['중국정경전공','중국학전공'],['일본학과','일본학전공'],
+  ['유라시아학과','러시아·유라시아학과'],['국제통상학과','국제통상금융학과'],
+  ['기계금속재료전공','에너지·모빌리티재료전공'],['건축시스템전공','건축학전공'],
+  ['기계시스템공학전공','기계공학전공'],['융합기계공학전공','기계공학전공'],['에너지기계공학전공','기계공학전공'],
+  ['전자시스템공학전공','지능형ICT융합전공'],['지능전자공학전공','모빌리티전력전자융합전공'],
+  ['융합전자공학전공','지능형반도체융합전자전공'],
+  ['산림환경시스템학과','산림기후환경학과'],['임산생명공학과','바이오소재융합공학과'],
+  ['바이오발효융합학과','융합바이오공학과'],['바이오의약전공','바이오의과학과'],
+  ['나노전자물리학과','양자융합공학과'],['나노소재전공','에너지반도체화학공학과'],
+  ['응용화학과','에너지반도체화학공학과|바이오의과학과'],['생명나노화학과','에너지반도체화학공학과|바이오의과학과'],
+  ['KIBS','International Business전공'],['KMU International Business School','International Business전공']
+].map(([past,current])=>[normalizeUnit(past),current.split('|').map(normalizeUnit)]));
+
+function kookminSeatLookup(guide){
+  const units=new Map();
+  for(const row of guide.rows){
+    const unit=row[0].replace(/\(\d년제\)$/u,'');
+    const major=unit.replace(/^\S+학부(?:\(야\))?\s+/u,'');
+    for(const key of [row[0],unit,major])units.set(normalizeUnit(key),row);
+  }
+  const general=guide.headers.indexOf('일반')+1,bachelor=guide.headers.indexOf('학사')+1;
+  return (name,track)=>{
+    const label=track.replace(/\s/g,'').replace(/편입(?:학)?$/,'');
+    const column=label==='일반'?general:label==='학사'?bachelor:0;
+    if(!column)return null;
+    const historical=name.replace(/\(\d년제\)$/u,'');
+    const key=normalizeUnit(historical.slice(historical.lastIndexOf('/')+1));
+    const alias=kookminNames.get(key);
+    const rows=(alias||[key]).map(unit=>units.get(unit)).filter(Boolean);
+    if(!rows.length)return [{label:'모집단위 확인 필요'}];
+    return rows.map(row=>{
+      const changedParent=historical.includes('/')&&normalizeUnit(historical.replaceAll('/',' '))!==normalizeUnit(row[0].replace(/\(\d년제\)$/u,''));
+      const display=alias||changedParent?row[0]+' ':'';
+      const seats=row[column];
+      return {label:seats==null?display+'미선발':display.trim(),seats};
+    });
+  };
+}
+
 export function seatLookup(guide,school){
   if(school==='kyonggi')return kyonggiSeatLookup(guide);
+  if(school==='kookmin')return kookminSeatLookup(guide);
   const units=new Map(guide.rows.map(row=>[normalizeUnit(row[0]),row]));
   const sookmyung=school==='sookmyung', aliases=sookmyung?sookmyungUnits:konkukUnits;
   const general=guide.headers.indexOf(sookmyung?'일반(정원 내)':'일반')+1;

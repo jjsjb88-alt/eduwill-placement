@@ -2,7 +2,8 @@ import {account,login,logout,quotaAdmin,quotaGuide,quotaExcerpt,publishQuota} fr
 import {gachonTrend,change,seatText} from './trend.js';
 
 const $=id=>document.getElementById(id);
-const gachon='가천대학교', kau='한국항공대학교', swu='서울여자대학교', sookmyung='숙명여자대학교', konkuk='건국대학교', kyonggi='경기대학교';
+const gachon='가천대학교', kau='한국항공대학교', swu='서울여자대학교', sookmyung='숙명여자대학교', konkuk='건국대학교', kyonggi='경기대학교', kookmin='국민대학교';
+const kookminSource='https://admission.kookmin.ac.kr/datafiles/contents/2027%ED%95%99%EB%85%84%EB%8F%84_%ED%8E%B8%EC%9E%85%ED%95%99_%EB%AA%A8%EC%A7%91%EC%9A%94%EA%B0%95.pdf';
 const gachonSource='https://admission.gachon.ac.kr/upload/BBS0021/20261123093522349J3D.PDF';
 const gachonHash='47830bd8d1b0f40e152ea6d6e8df00daa13e319d36817f2fb4a802d6194be434';
 const verified={
@@ -16,7 +17,9 @@ const verified={
     notice:'https://admission.konkuk.ac.kr/bbs/admission/6282/1212887/artclView.do'},
   [kyonggi]:{file:'kyonggi-2027',pages:[5,6],hash:'d29d9e9fcaae247a6a0123a061b9730699dfb78e1e737b8f0e1305ae50e30bfe',
     source:'https://enter.kyonggi.ac.kr/cms/FR_BBS_CON/BoardView.do?BBS_SEQ=4058&BOARD_SEQ=3&CONTENTS_NO=3&MENU_ID=280&SITE_NO=2',
-    notice:'https://enter.kyonggi.ac.kr/cms/FR_BBS_CON/BoardView.do?BBS_SEQ=4387&BOARD_SEQ=1&CONTENTS_NO=3&MENU_ID=210&SITE_NO=2'}
+    notice:'https://enter.kyonggi.ac.kr/cms/FR_BBS_CON/BoardView.do?BBS_SEQ=4387&BOARD_SEQ=1&CONTENTS_NO=3&MENU_ID=210&SITE_NO=2'},
+  [kookmin]:{file:'kookmin-2027',pages:[4,5],hash:'4a46d963a32b9db9048c7be4316f70847d8c75e126790d5c01ba92ecfae2e5c3',
+    source:kookminSource,notice:kookminSource+'#page=6'}
 };
 const schedules={
   수원대학교:{source:'https://ipsi.suwon.ac.kr/board/notice/read/6342?nPage=1&st=%EC%84%A0%ED%96%89',rows:[
@@ -35,7 +38,7 @@ const notes=document.querySelector('#textTable p'), gachonNotes=notes.textConten
 const swuSource='https://admission.swu.ac.kr/bbs/board.php?bo_table=flashpaper&sca=%ED%8E%B8%EC%9E%85%ED%95%99&sub_ck=1';
 const schoolName=s=>({가천대:gachon,서울여대:swu,항공대:kau,한국항공대:kau,수원대:'수원대학교',
   숙대:sookmyung,숙명대:sookmyung,숙명여대:sookmyung,건국대:konkuk,'건국대(서울)':konkuk,'건국대학교(서울)':konkuk,
-  경기대:kyonggi,'경기대(수원)':kyonggi,'경기대(서울)':kyonggi}[s] || s);
+  경기대:kyonggi,'경기대(수원)':kyonggi,'경기대(서울)':kyonggi,국민대:kookmin}[s] || s);
 function schoolValue(raw){
   const value=schoolName(raw.normalize('NFKC').trim().replace(/\s+/g,''));
   if(typeof value!=='string'||!value||value.length>80||/[\/\x00-\x1f]/.test(value)||/^\.\.?$/.test(value))throw Error('학교 이름을 확인해 주세요.');
