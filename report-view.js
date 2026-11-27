@@ -424,24 +424,13 @@
       return tr;
     }));
   }
-  // Optional evidence is provided by the protected per-student report, never derived from a rounded percentile.
-  function competitionTopShare(row){
-    const e=row[7];
-    if(!e||!Number.isSafeInteger(e.above)||!Number.isSafeInteger(e.count)||
-       e.above<0||e.count<1||e.above>=e.count)return null;
-    const shown=String(row[5]??'').trim();
-    if(!/^\d[\d,]*\s*명?$/.test(shown)||Number(shown.replace(/[,\s명]/g,''))!==e.count)return null;
-    const count=BigInt(e.count), tenths=(2000n*BigInt(e.above+1)+count)/(2n*count);
-    return `${tenths/10n}.${tenths%10n}%`;
-  }
   function renderExamHistory(rows){
+    $('history').open=false;
     $('history').hidden=!rows.length;
+    $('historyRankHelp').open=false;
     $('exams').replaceChildren(...rows.map(row=>{
       const tr=el('tr');
       tr.append(...row.slice(0,7).map(v=>el('td',v)));
-      const top=competitionTopShare(row), cell=el('td',top??'—');
-      if(top===null){cell.title='공동석차 자료 없음';cell.setAttribute('aria-label','공동석차 자료 없음');}
-      tr.append(cell);
       return tr;
     }));
   }
