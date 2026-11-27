@@ -424,6 +424,27 @@
       return tr;
     }));
   }
+  // Optional evidence is provided by the protected per-student report, never derived from a rounded percentile.
+  function competitionTopShare(row){
+    const e=row[7];
+    if(!e||!Number.isSafeInteger(e.above)||!Number.isSafeInteger(e.count)||
+       e.above<0||e.count<1||e.above>=e.count)return null;
+    const shown=String(row[5]??'').trim();
+    if(!/^\d[\d,]*\s*명?$/.test(shown)||Number(shown.replace(/[,\s명]/g,''))!==e.count)return null;
+    const count=BigInt(e.count), tenths=(2000n*BigInt(e.above+1)+count)/(2n*count);
+    return `${tenths/10n}.${tenths%10n}%`;
+  }
+  function renderExamHistory(rows){
+    $('history').hidden=!rows.length;
+    $('exams').replaceChildren(...rows.map(row=>{
+      const tr=el('tr');
+      tr.append(...row.slice(0,7).map(v=>el('td',v)));
+      const top=competitionTopShare(row), cell=el('td',top??'—');
+      if(top===null){cell.title='공동석차 자료 없음';cell.setAttribute('aria-label','공동석차 자료 없음');}
+      tr.append(cell);
+      return tr;
+    }));
+  }
   async function choose(match,token){
     const [data,{reconcileSchool,countsForSchool,schoolCutoffDistance},examFit,pastScores]=await Promise.all([
       loadFile(match.id,from64(match.key)),import('./report-units.js?v=20261126-admission-units'),
@@ -465,8 +486,7 @@
     renderPastScores(data.pastScores);
     $('archive').hidden=!(access.historical&&data.archiveBands);
     $('field').value=$('track').value=band='전체';
-    $('history').hidden=!data.history.length;
-    $('exams').replaceChildren(...data.history.map(r=>{const tr=el('tr');tr.append(...r.map(v=>el('td',v)));return tr;}));
+    renderExamHistory(data.history);
     const studentId=match.studentId || (access.version==='6653734d48f11192'?match.id:null);
     window.applicationRecords.select(studentId,data.schools);
     $('report').hidden=false;renderSchools();
