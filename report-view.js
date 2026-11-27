@@ -427,7 +427,6 @@
   function renderExamHistory(rows){
     $('history').open=false;
     $('history').hidden=!rows.length;
-    $('historyRankHelp').open=false;
     $('exams').replaceChildren(...rows.map(row=>{
       const tr=el('tr');
       tr.append(...row.slice(0,7).map(v=>el('td',v)));

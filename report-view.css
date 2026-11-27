@@ -100,7 +100,4 @@ main:has(#report:not([hidden])){max-width:1480px}
 #pastScores td:last-child{white-space:nowrap}
 #schoolPastScores{margin:4px 0 10px;color:var(--sub);font-size:.82rem}
 
-#historyRankNote,#historyRankHelp p{font-size:.9rem;line-height:1.65;color:var(--sub)}
-#historyRankHelp{margin-top:.8rem;padding:.65rem .8rem;border:1px solid var(--line);border-radius:.5rem}
-#historyRankHelp summary{font-size:.9rem;font-weight:650}
-#historyRankHelp p:last-child{margin-bottom:0}
+#historyRankNote{font-size:.9rem;line-height:1.65;color:var(--sub);margin:.35rem 0 .55rem}

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://apis.google.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://trnasfer-2982c.firebaseapp.com https://apis.google.com; frame-src https://trnasfer-2982c.firebaseapp.com; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
-<title>서정빈 · 전 분원 배치상담</title><link rel="stylesheet" href="report-view.css?v=20261127-exam-percentile-clear"><script src="application-ui.js?v=20261125-subjects" defer></script><script src="report-view.js?v=20261127-exam-percentile-clear" defer></script></head>
+<title>서정빈 · 전 분원 배치상담</title><link rel="stylesheet" href="report-view.css?v=20261127-exam-percentile-simple"><script src="application-ui.js?v=20261125-subjects" defer></script><script src="report-view.js?v=20261127-exam-percentile-simple" defer></script></head>
 <body><header><div class="bar"><strong>에듀윌 편입</strong><span>서정빈 배치상담실</span><button id="lock" hidden>상담 종료 · 잠그기</button></div></header>
 <main>
 <section id="gate" class="gate"><p class="eyebrow">2027학년도 편입</p><h1>전 분원 배치상담</h1><p class="lead">서정빈 <span>·</span> 모의고사 성적 상담</p>
@@ -34,9 +34,6 @@
 <div class="panelActions"><button id="panelSave" class="primary" type="button">지원 확정</button><span id="panelStatus" role="status"></span></div>
 </div></aside></div>
 <details id="history"><summary>응시 성적 보기</summary>
-<p id="historyRankNote">시험별 백분위는 같은 시험을 본 응시자와 비교한 값입니다. 높을수록 좋은 성적입니다.</p>
-<div class="scroll"><table aria-describedby="historyRankNote"><thead><tr><th scope="col">시행일</th><th scope="col">시험</th><th scope="col">과목</th><th scope="col">원점수</th><th scope="col">시험별 백분위</th><th scope="col">응시자</th><th scope="col">반영</th></tr></thead><tbody id="exams"></tbody></table></div>
-<details id="historyRankHelp"><summary>분원에서 안내한 ‘상위 %’와 왜 다른가요?</summary>
-<p>분원의 ‘상위 %’가 공동석차 기준이면, 나보다 높은 점수를 받은 사람만 세어 순위를 매깁니다. 이 화면의 백분위는 나와 같은 점수를 받은 사람을 절반으로 세기 때문에, 두 수치의 합이 100이 아닐 수 있습니다.</p>
-<p>화면 위쪽의 상담용 백분위는 여러 시험 성적을 바탕으로 산출하므로, 이 표의 개별 시험 백분위와 다를 수 있습니다.</p></details></details></section>
+<p id="historyRankNote">백분위는 같은 시험 응시자 기준입니다.</p>
+<div class="scroll"><table aria-describedby="historyRankNote"><thead><tr><th scope="col">시행일</th><th scope="col">시험</th><th scope="col">과목</th><th scope="col">원점수</th><th scope="col">시험 백분위</th><th scope="col">응시자</th><th scope="col">반영</th></tr></thead><tbody id="exams"></tbody></table></div></details></section>
 <footer>서정빈 배치상담실 <a href="mini.html">기출 배치상담 ↗</a> · <a href="quotas/">대학별 모집인원·전형일정 ↗</a></footer></section></main></body></html>
